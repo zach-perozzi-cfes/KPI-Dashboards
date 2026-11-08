@@ -183,7 +183,7 @@ function pipeline(src, win) {
 const TASK_KINDS = [
   { key: 'design', label: 'Designs complete', src: 'tasksDesign', test: (n) => /design/i.test(n) },
   { key: 'permitApp', label: 'Permit apps submitted', src: 'tasksPermit', test: (n) => /^permit application/i.test(n) },
-  { key: 'permitOk', label: 'Permits approved', src: 'tasksPermit', test: (n) => /^notify ho of permit approval/i.test(n) },
+  { key: 'permitOk', label: 'Permits Received', src: 'tasksPermit', test: (n) => /^notify ho of permit approval/i.test(n) },
   { key: 'module', label: 'Module installs', src: 'tasksInstall', test: (n) => /^module install/i.test(n) },
   { key: 'electrical', label: 'Electrical installs', src: 'tasksInstall', test: (n) => /^electrical install/i.test(n) },
   { key: 'ev', label: 'EV chargers installed', src: 'tasksInstall', test: (n) => /^ev charger install/i.test(n) },
