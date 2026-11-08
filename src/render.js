@@ -127,7 +127,8 @@ function salesBoard(s, win) {
 <div class="card kpi green"><p class="lbl">Meetings booked · next week</p><p class="big">${s.nextTotal}</p><p class="sub">On the calendar for ${esc(weekLabel(win.nextWs).replace(/, \d{4}$/, ''))}</p></div>
 </section>`;
 
-  const plotH = 220;
+  // Tallest bar + its number label must fit the 340px chart row (header, gaps, day labels): ~170px.
+  const plotH = 170;
   const cMax = Math.max(1, ...s.callDays.map((d) => d.out + d.inb));
   const callCols = s.callDays.map((d) => {
     const ho = Math.round((d.out / cMax) * plotH), hi = Math.round((d.inb / cMax) * plotH);
