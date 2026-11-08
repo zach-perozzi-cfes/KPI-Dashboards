@@ -130,8 +130,9 @@ function sourceDefs(win) {
       .then((rows) => rows.map((r) => ({ t: r.Call_Start_Time, type: r.Call_Type || '' }))),
     meetings: () => coqlAll(`select Start_DateTime from Events where Start_DateTime between '${since}' and '${until}'`)
       .then((rows) => rows.map((r) => ({ t: r.Start_DateTime }))),
-    openDeals: () => coqlAll(`select Stage, Amount from Deals where Stage not in ('Closed Won', 'Closed Lost', 'Closed Deferred', 'Closed Disqualified', 'Closed Hold', 'Appointment Cancelled')`)
-      .then((rows) => rows.map((r) => ({ stage: r.Stage || 'Unknown', amount: Number(r.Amount) || 0 }))),
+    // Closed Deferred is treated like Closed Lost (not open, not won).
+    openDeals: () => coqlAll(`select Stage, Amount, Layout from Deals where Stage not in ('Closed Won', 'Closed Lost', 'Closed Deferred', 'Closed Disqualified', 'Closed Hold', 'Appointment Cancelled')`)
+      .then((rows) => rows.map((r) => ({ stage: r.Stage || 'Unknown', amount: Number(r.Amount) || 0, layout: (r.Layout && r.Layout.name) || 'No layout' }))),
     newDeals: () => coqlAll(`select Created_Time, Pipeline from Deals where Created_Time >= '${win.prevMonthStart}T00:00:00-05:00'`)
       .then((rows) => rows.map((r) => ({ t: r.Created_Time, pipeline: r.Pipeline || '' }))),
     wonDeals: () => coqlAll(`select Closing_Date, Amount, Pipeline from Deals where Stage = 'Closed Won' and Closing_Date >= '${win.yearStart}'`)

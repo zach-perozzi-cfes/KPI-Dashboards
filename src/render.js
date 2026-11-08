@@ -200,12 +200,17 @@ ${newTile}
 <div style="display:grid;grid-template-columns:72px repeat(${n},minmax(0,1fr));column-gap:${n > 9 ? 18 : 28}px;row-gap:8px;align-items:center"><span></span>${monthLbls}<span style="font-size:13px;color:#b8b8b8">Deals won</span>${counts}</div>
 <p class="sub" style="font-size:13px">* ${MONTHS[n - 1]} is month to date.</p></div>`;
 
-  const aMax = Math.max(1, ...p.stages.map((s) => s.amt));
-  const color = { late: 'y', early: 'g', nurture: 'o', other: 'l' };
-  const rows = p.stages.map((s) => `<span style="color:#eaeaea">${esc(s.stage.replace('Post Appointment Questionnaire Completed', 'Post-Appt Questionnaire').replace(/Proposal Review-(\d+)/, 'Proposal Review $1'))}</span><span class="r">${s.n}</span><div class="bar ${s.amt ? color[s.kind] : ''}" style="height:16px;border-radius:3px;${s.amt ? `width:${Math.max(0.8, (s.amt / aMax) * 100).toFixed(1)}%` : 'width:4px;background:#3e3e3f'}"></div><span style="text-align:right;color:#eaeaea">${s.amt ? money(s.amt) : '—'}</span>`).join('');
-  const right = `<div class="card panel"><div class="ph"><h2 class="lbl">Open pipeline by stage</h2><span class="sub">deals · amount</span></div>
-<div class="hb" style="grid-template-columns:220px 44px minmax(0,1fr) 84px;gap:${p.stages.length > 13 ? 7 : 11}px 14px">${rows}</div>
-<div style="margin-top:auto;display:flex;gap:20px;flex-wrap:wrap;font-size:14px;color:#eaeaea"><span class="key"><span class="sw l"></span>Pre-proposal / other</span><span class="key"><span class="sw g"></span>Early proposal</span><span class="key"><span class="sw y"></span>Late stage</span><span class="key"><span class="sw o"></span>Nurture</span></div></div>`;
+  // Open deals: stage (rows) x CRM layout / department (columns), cells shaded by count.
+  const stageName = (s) => s.replace('Post Appointment Questionnaire Completed', 'Post-Appt Questionnaire').replace(/Proposal Review-(\d+)/, 'Proposal Review $1');
+  const L = p.layouts;
+  const gridCols = `minmax(0,1fr) repeat(${L.length},86px) 60px`;
+  const rowH = p.matrix.length > 14 ? 30 : 34;
+  const head = `<span></span>${L.map((l) => `<span style="text-align:center;font-size:14px;color:#eaeaea;font-weight:700;line-height:1.25;white-space:nowrap">${esc(l.short)}<br><span style="color:#b8b8b8;font-weight:400">${l.n}</span></span>`).join('')}<span style="text-align:center;font-size:14px;color:#ffdb05;font-weight:700;line-height:1.25">Total<br><span>${p.openN}</span></span>`;
+  const body = p.matrix.map((r) => `<span style="color:#eaeaea;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(stageName(r.stage))}</span>${r.cells.map((v) => (v
+    ? `<span style="height:${rowH}px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-weight:700;font-size:17px;background:rgba(113,166,43,${(0.18 + 0.72 * (v / p.cellMax)).toFixed(2)})">${v}</span>`
+    : `<span style="height:${rowH}px;display:flex;align-items:center;justify-content:center;color:#5f5f61">·</span>`)).join('')}<span style="text-align:center;font-weight:700;font-size:17px">${r.total}</span>`).join('');
+  const right = `<div class="card panel"><div class="ph"><h2 class="lbl">Open deals by stage &amp; department</h2><span class="sub">CRM layout · deal count</span></div>
+<div style="display:grid;grid-template-columns:${gridCols};gap:5px 8px;align-items:center">${head}${body}</div></div>`;
   return `${kpis}<section style="display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:24px;flex-grow:1;min-height:0">${left}${right}</section>`;
 }
 

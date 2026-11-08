@@ -97,6 +97,12 @@ const STAGE_ORDER = [
   'Proposal Review-20', 'Proposal Review-40', 'Proposal Review-60', 'Proposal Review-80', 'Negotiation',
   'Send to Energy Saver', 'Change Order', 'Nurture',
 ];
+const LAYOUT_SHORT = {
+  'CFSS Standard Deal': 'Standard',
+  'Service Deal': 'Service',
+  'Energy Services': 'Energy',
+  'EV Charging Deal': 'EV',
+};
 const LATE = new Set(['Proposal Review-60', 'Proposal Review-80', 'Negotiation']);
 const EARLY = new Set(['Proposal Review-20', 'Proposal Review-40']);
 
@@ -126,6 +132,24 @@ function pipeline(src, win) {
     return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.stage.localeCompare(b.stage);
   }).map((s) => ({ ...s, kind: LATE.has(s.stage) ? 'late' : EARLY.has(s.stage) ? 'early' : s.stage === 'Nurture' ? 'nurture' : 'other' }));
 
+  // Open deals by stage x layout (CRM layouts = departments), departments ordered by size.
+  const layoutN = new Map();
+  const cell = new Map();
+  for (const d of src.openDeals.data) {
+    const l = d.layout || 'No layout';
+    layoutN.set(l, (layoutN.get(l) || 0) + 1);
+    const k = `${d.stage}\u0000${l}`;
+    cell.set(k, (cell.get(k) || 0) + 1);
+  }
+  const layouts = [...layoutN.entries()].sort((a, b) => b[1] - a[1])
+    .map(([name, n]) => ({ name, short: LAYOUT_SHORT[name] || name, n }));
+  const matrix = stages.map((s) => ({
+    stage: s.stage,
+    total: s.n,
+    cells: layouts.map((l) => cell.get(`${s.stage}\u0000${l.name}`) || 0),
+  }));
+  const cellMax = Math.max(1, ...matrix.flatMap((r) => r.cells));
+
   const year = win.today.slice(0, 4);
   const curMonth = Number(win.today.slice(5, 7));
   const months = Array.from({ length: curMonth }, (_, i) => ({ m: i + 1, std: 0, svc: 0, nStd: 0, nSvc: 0 }));
@@ -142,6 +166,7 @@ function pipeline(src, win) {
   const late = stages.filter((s) => s.kind === 'late');
   return {
     stages,
+    layouts, matrix, cellMax,
     openAmt: sum(stages, (s) => s.amt), openN: sum(stages, (s) => s.n),
     lateAmt: sum(late, (s) => s.amt), lateN: sum(late, (s) => s.n),
     months,
