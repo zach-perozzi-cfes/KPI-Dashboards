@@ -110,7 +110,7 @@ function header(board, metrics, sources) {
     : `${b.system} · waiting for first sync`;
   if (failing.length || stale) status += ` · <span class="warn">refresh delayed</span>`;
   const right = board === 'middle' ? `${metrics.win.today.slice(0, 4)} year to date` : `Week of ${weekLabel(metrics.win.ws)}`;
-  return `<header><img src="/logo.png" alt="Cape Fear Energy Systems"><div class="vr"></div><h1>${esc(b.title)}</h1>
+  return `<header><h1>${esc(b.title)}</h1>
 <div class="hr"><p class="wk">${esc(right)}</p><p class="sub">${status}</p></div></header>`;
 }
 
@@ -281,7 +281,7 @@ ${o.tiles.map((t) => `<div class="row"><span>${esc(t.label)}</span><span${t.key 
 }
 
 function renderBoard(board, metrics, sources) {
-  if (!metrics) return `<header><img src="/logo.png" alt="Cape Fear Energy Systems"><div class="vr"></div><h1>${esc(BOARDS[board].title)}</h1></header><main>${waiting('Connecting to Zoho…')}</main>`;
+  if (!metrics) return `<header><h1>${esc(BOARDS[board].title)}</h1></header><main>${waiting('Connecting to Zoho…')}</main>`;
   const body = board === 'left' ? salesBoard(metrics.sales, metrics.win)
     : board === 'middle' ? pipelineBoard(metrics.pipeline, metrics.win)
       : opsBoard(metrics.ops, metrics.win);
