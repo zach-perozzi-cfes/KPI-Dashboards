@@ -6,7 +6,7 @@ const { nextSlot, maxGapHours, slotLabel } = require('./schedule');
 
 const BOARDS = {
   left: { title: 'Inside Sales', sources: ['leads', 'calls', 'meetings'], system: 'Zoho CRM' },
-  middle: { title: 'Sales Pipeline', sources: ['openDeals', 'wonDeals'], system: 'Zoho CRM Deals' },
+  middle: { title: 'Sales Pipeline', sources: ['openDeals', 'wonDeals', 'newDeals'], system: 'Zoho CRM Deals' },
   right: { title: 'Operations', sources: ['projects', 'tasksDesign', 'tasksPermit', 'tasksInstall'], system: 'Zoho Projects' },
 };
 
@@ -163,9 +163,16 @@ function salesBoard(s, win) {
 function pipelineBoard(p, win) {
   if (!p) return waiting();
   const curM = p.months.length;
+  const nd = p.newDeals;
+  const prevMonth = MONTHS[Number(win.prevMonthStart.slice(5, 7)) - 1];
+  const newTile = nd
+    ? `<div class="card kpi"><p class="lbl">New deals · ${MONTHS[curM - 1]} to date</p><p class="big">${nd.n}</p><p class="sub">${delta(nd.n, nd.prevSame, `vs ${prevMonth} 1–${nd.day}`)} · ${nd.std} standard, ${nd.svc} service</p></div>`
+    : `<div class="card kpi"><p class="lbl">New deals · ${MONTHS[curM - 1]} to date</p><p class="big">–</p><p class="sub">waiting for Zoho</p></div>`;
+  const avgStd = p.ytdStdN ? p.ytdStdAmt / p.ytdStdN : 0;
+  const avgSvc = p.ytdSvcN ? p.ytdSvcAmt / p.ytdSvcN : 0;
   const kpis = `<section class="kpis">
-<div class="card kpi"><p class="lbl">Open pipeline</p><p class="big" style="font-size:76px">${money(p.openAmt)}</p><p class="sub">${p.openN} open deals across ${p.stages.length} stages</p></div>
-<div class="card kpi gold"><p class="lbl">Late stage</p><p class="big" style="font-size:76px">${money(p.lateAmt)}</p><p class="sub">${p.lateN} deals · Proposal 60 / 80 + Negotiation</p></div>
+${newTile}
+<div class="card kpi gold"><p class="lbl">Avg deal size · ${win.today.slice(0, 4)}</p><p class="big" style="font-size:76px">${money(avgStd)}</p><p class="sub">Standard pipeline, ${p.ytdStdN} won · service avg ${money(avgSvc)}</p></div>
 <div class="card kpi"><p class="lbl">Closed won · ${MONTHS[curM - 1]} to date</p><p class="big" style="font-size:76px">${money(p.mtdAmt)}</p><p class="sub">${p.mtdN} deals · ${p.mtdStdN} standard, ${p.mtdSvcN} service</p></div>
 <div class="card kpi green"><p class="lbl">Closed won · ${win.today.slice(0, 4)}</p><p class="big" style="font-size:76px">${money(p.ytdAmt)}</p><p class="sub">${p.ytdN} deals${p.prevAmt != null ? ` · ${MONTHS[curM - 2]} was ${money(p.prevAmt)}` : ''}</p></div>
 </section>`;

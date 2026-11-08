@@ -23,7 +23,11 @@ function windowFor(now = new Date()) {
   const today = nyDate(now.toISOString());
   const ws = mondayOf(today);
   const weeks = [addDays(ws, -21), addDays(ws, -14), addDays(ws, -7), ws];
+  const monthStart = `${today.slice(0, 8)}01`;
+  const prevMonthStart = `${addDays(monthStart, -1).slice(0, 8)}01`;
   return {
+    monthStart,
+    prevMonthStart,
     today,
     ws,
     weeks,
@@ -96,6 +100,19 @@ const STAGE_ORDER = [
 const LATE = new Set(['Proposal Review-60', 'Proposal Review-80', 'Negotiation']);
 const EARLY = new Set(['Proposal Review-20', 'Proposal Review-40']);
 
+// New deals this month vs the same days of last month (by created date).
+function newDeals(src, win) {
+  if (!src.newDeals || !src.newDeals.data) return null;
+  const rows = src.newDeals.data.map((d) => ({ d: nyDate(d.t), svc: /cfss/i.test(d.pipeline) }));
+  const day = Number(win.today.slice(8, 10));
+  const prevEnd = addDays(win.monthStart, -1);
+  const prevSameEnd = addDays(win.prevMonthStart, day - 1) > prevEnd ? prevEnd : addDays(win.prevMonthStart, day - 1);
+  const cur = rows.filter((r) => r.d && r.d >= win.monthStart && r.d <= win.today);
+  const prevSame = rows.filter((r) => r.d && r.d >= win.prevMonthStart && r.d <= prevSameEnd).length;
+  const prevTotal = rows.filter((r) => r.d && r.d >= win.prevMonthStart && r.d <= prevEnd).length;
+  return { n: cur.length, std: cur.filter((r) => !r.svc).length, svc: cur.filter((r) => r.svc).length, prevSame, prevTotal, day };
+}
+
 function pipeline(src, win) {
   if (!src.openDeals.data || !src.wonDeals.data) return null;
   const byStage = new Map();
@@ -131,6 +148,9 @@ function pipeline(src, win) {
     mtdAmt: cur.std + cur.svc, mtdN: cur.nStd + cur.nSvc, mtdStdN: cur.nStd, mtdSvcN: cur.nSvc,
     prevAmt: prev ? prev.std + prev.svc : null,
     ytdAmt: sum(months, (m) => m.std + m.svc), ytdN: sum(months, (m) => m.nStd + m.nSvc),
+    ytdStdAmt: sum(months, (m) => m.std), ytdStdN: sum(months, (m) => m.nStd),
+    ytdSvcAmt: sum(months, (m) => m.svc), ytdSvcN: sum(months, (m) => m.nSvc),
+    newDeals: newDeals(src, win),
   };
 }
 

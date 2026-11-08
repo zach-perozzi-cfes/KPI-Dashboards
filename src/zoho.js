@@ -132,6 +132,8 @@ function sourceDefs(win) {
       .then((rows) => rows.map((r) => ({ t: r.Start_DateTime }))),
     openDeals: () => coqlAll(`select Stage, Amount from Deals where Stage not in ('Closed Won', 'Closed Lost', 'Closed Deferred', 'Closed Disqualified', 'Closed Hold', 'Appointment Cancelled')`)
       .then((rows) => rows.map((r) => ({ stage: r.Stage || 'Unknown', amount: Number(r.Amount) || 0 }))),
+    newDeals: () => coqlAll(`select Created_Time, Pipeline from Deals where Created_Time >= '${win.prevMonthStart}T00:00:00-05:00'`)
+      .then((rows) => rows.map((r) => ({ t: r.Created_Time, pipeline: r.Pipeline || '' }))),
     wonDeals: () => coqlAll(`select Closing_Date, Amount, Pipeline from Deals where Stage = 'Closed Won' and Closing_Date >= '${win.yearStart}'`)
       .then((rows) => rows.map((r) => ({ date: r.Closing_Date, amount: Number(r.Amount) || 0, pipeline: r.Pipeline || '' }))),
     projects: () => projectsCreatedSince(win.fetchFrom),
