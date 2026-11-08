@@ -2,6 +2,7 @@
 // Server-side HTML for the three 1920x1080 monitor boards (CFES brand: green #71a62b, yellow #ffdb05, orange #f49c20, Verdana).
 
 const { addDays } = require('./metrics');
+const { nextSlot, maxGapHours, slotLabel } = require('./schedule');
 
 const BOARDS = {
   left: { title: 'Inside Sales', sources: ['leads', 'calls', 'meetings'], system: 'Zoho CRM' },
@@ -102,8 +103,11 @@ function header(board, metrics, sources) {
   const b = BOARDS[board];
   const fetched = b.sources.map((k) => sources[k] && sources[k].fetchedAt).filter(Boolean).sort()[0];
   const failing = b.sources.filter((k) => sources[k] && sources[k].error);
-  const stale = fetched && Date.now() - new Date(fetched).getTime() > 45 * 60 * 1000;
-  let status = fetched ? `${b.system} · updated ${dayTimeFmt.format(new Date(fetched))}` : `${b.system} · waiting for first sync`;
+  // Pulls run on a fixed schedule, so "late" means older than the longest gap between pulls plus an hour.
+  const stale = fetched && Date.now() - new Date(fetched).getTime() > (maxGapHours() + 1) * 3600 * 1000;
+  let status = fetched
+    ? `${b.system} · updated ${dayTimeFmt.format(new Date(fetched))} · next ${slotLabel(nextSlot())}`
+    : `${b.system} · waiting for first sync`;
   if (failing.length || stale) status += ` · <span class="warn">refresh delayed</span>`;
   const right = board === 'middle' ? `${metrics.win.today.slice(0, 4)} year to date` : `Week of ${weekLabel(metrics.win.ws)}`;
   return `<header><img src="/logo.png" alt="Cape Fear Energy Systems"><div class="vr"></div><h1>${esc(b.title)}</h1>

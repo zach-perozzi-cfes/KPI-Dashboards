@@ -19,7 +19,7 @@ services:
         generateValue: true
       - key: ZOHO_PORTAL_ID
         value: "727368074"
-      - key: REFRESH_MINUTES
-        value: "10"
+      - key: REFRESH_TIMES
+        value: "07:00,12:00,16:00"
       - key: POLL_SECONDS
         value: "300"

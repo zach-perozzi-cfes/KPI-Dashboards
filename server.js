@@ -7,11 +7,11 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { loadAll } = require('./src/zoho');
-const { computeAll, windowFor } = require('./src/metrics');
+const { computeAll, windowFor, nyDate } = require('./src/metrics');
 const { BOARDS, renderPage, renderBoard } = require('./src/render');
+const { SLOTS, nowHM, slotLabel } = require('./src/schedule');
 
 const PORT = Number(process.env.PORT || 10000);
-const REFRESH_MS = Math.max(5, Number(process.env.REFRESH_MINUTES || 10)) * 60_000;
 const POLL_MS = Math.max(60, Number(process.env.POLL_SECONDS || 300)) * 1000;
 const DASH_KEY = process.env.DASH_KEY || '';
 const DASH_USER = process.env.DASH_USER || '';
@@ -101,9 +101,23 @@ const server = http.createServer((req, res) => {
   return send(404, 'text/plain', 'Not found');
 });
 
+// Zoho is pulled once at startup, then only at the scheduled times (default 7:00, 12:00, 16:00 ET).
+// The boards poll this server's cache, which never calls Zoho.
+let lastSlotKey = null;
+function tick() {
+  const d = new Date();
+  const hm = nowHM(d);
+  const key = `${nyDate(d.toISOString())} ${hm}`;
+  if (SLOTS.includes(hm) && key !== lastSlotKey) {
+    lastSlotKey = key;
+    refresh();
+  }
+}
+
 server.listen(PORT, () => {
-  console.log(`[cfes-monitors] listening on :${PORT}${FIXTURE ? ' (fixture mode)' : ''}`);
+  console.log(`[cfes-monitors] listening on :${PORT}${FIXTURE ? ' (fixture mode)' : ''}; Zoho pulls at ${SLOTS.map(slotLabel).join(', ')} ET`);
   if (!FIXTURE && !DASH_KEY && !(DASH_USER && DASH_PASS)) console.warn('[cfes-monitors] no DASH_KEY or DASH_USER/DASH_PASS set: every board request will be refused');
   refresh();
-  setInterval(refresh, FIXTURE ? 60_000 : REFRESH_MS);
+  if (FIXTURE) setInterval(refresh, 60_000);
+  else setInterval(tick, 20_000);
 });
