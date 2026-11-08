@@ -22,8 +22,18 @@ const LOGO = fs.readFileSync(path.join(__dirname, 'public', 'logo.png'));
 
 let sources = {};
 let metrics = null;
+let running = false;
 
-async function refresh() {
+// If a pull partly fails, retry a few times instead of waiting hours for the next slot.
+const RETRY_MS = Math.max(5, Number(process.env.RETRY_MINUTES || 15)) * 60_000;
+const MAX_RETRIES = 4;
+let retryTimer = null;
+let retriesLeft = MAX_RETRIES;
+
+async function refresh({ scheduled = true } = {}) {
+  if (running) return;
+  running = true;
+  if (scheduled) { retriesLeft = MAX_RETRIES; clearTimeout(retryTimer); retryTimer = null; }
   try {
     if (FIXTURE) {
       sources = JSON.parse(fs.readFileSync(FIXTURE, 'utf8'));
@@ -34,9 +44,19 @@ async function refresh() {
     sources = await loadAll(windowFor(new Date()), sources);
     metrics = computeAll(sources, new Date());
     const failed = Object.entries(sources).filter(([, v]) => v.error).map(([k]) => k);
-    console.log(`[refresh] ${new Date().toISOString()} ok${failed.length ? `, failed: ${failed.join(', ')}` : ''}`);
+    if (!failed.length) {
+      console.log(`[refresh] ${new Date().toISOString()} ok, all sources pulled`);
+    } else if (retriesLeft > 0) {
+      retriesLeft--;
+      retryTimer = setTimeout(() => refresh({ scheduled: false }), RETRY_MS);
+      console.log(`[refresh] ${new Date().toISOString()} failed: ${failed.join(', ')}; retrying in ${RETRY_MS / 60_000} min (${retriesLeft} retries left)`);
+    } else {
+      console.log(`[refresh] ${new Date().toISOString()} failed: ${failed.join(', ')}; no retries left, waiting for the next scheduled pull`);
+    }
   } catch (e) {
     console.error('[refresh] error:', e.message || e);
+  } finally {
+    running = false;
   }
 }
 

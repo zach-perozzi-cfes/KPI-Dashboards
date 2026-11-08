@@ -9,9 +9,27 @@ const PORTAL = process.env.ZOHO_PORTAL_ID || '727368074';
 
 let token = null;
 let tokenExp = 0;
+let inflight = null; // one shared token request at a time
+let lastTokenError = null;
+let lastTokenErrorAt = 0;
+const TOKEN_COOLDOWN_MS = 10 * 60_000; // after Zoho refuses, wait before asking again
 
-async function accessToken(force = false) {
-  if (!force && token && Date.now() < tokenExp - 60_000) return token;
+// Zoho rate-limits access-token requests per refresh token, so every caller shares
+// one cached token and at most one in-flight request. `stale` is a token that just
+// got a 401: only then is a fresh one fetched.
+async function accessToken(stale = null) {
+  const valid = token && Date.now() < tokenExp - 60_000;
+  if (valid && token !== stale) return token;
+  if (inflight) return inflight;
+  if (lastTokenError && Date.now() - lastTokenErrorAt < TOKEN_COOLDOWN_MS) throw lastTokenError;
+  inflight = requestToken()
+    .then((t) => { lastTokenError = null; return t; })
+    .catch((e) => { lastTokenError = e; lastTokenErrorAt = Date.now(); throw e; })
+    .finally(() => { inflight = null; });
+  return inflight;
+}
+
+async function requestToken() {
   const { ZOHO_CLIENT_ID, ZOHO_CLIENT_SECRET, ZOHO_REFRESH_TOKEN } = process.env;
   if (!ZOHO_CLIENT_ID || !ZOHO_CLIENT_SECRET || !ZOHO_REFRESH_TOKEN) {
     throw new Error('Zoho credentials are not configured (ZOHO_CLIENT_ID / ZOHO_CLIENT_SECRET / ZOHO_REFRESH_TOKEN)');
@@ -24,20 +42,23 @@ async function accessToken(force = false) {
   });
   const r = await fetch(`${ACCOUNTS}/oauth/v2/token`, { method: 'POST', body, signal: AbortSignal.timeout(20_000) });
   const j = await r.json().catch(() => ({}));
-  if (!j.access_token) throw new Error(`Zoho token refresh failed (${j.error || r.status})`);
+  if (!j.access_token) {
+    const detail = [j.error, j.error_description].filter(Boolean).join(': ') || `HTTP ${r.status}`;
+    throw new Error(`Zoho token refresh failed (${detail})`);
+  }
   token = j.access_token;
   tokenExp = Date.now() + (Number(j.expires_in) || 3600) * 1000;
   return token;
 }
 
-async function zfetch(url, init = {}, retried = false) {
-  const t = await accessToken(retried);
+async function zfetch(url, init = {}, staleToken = null) {
+  const t = await accessToken(staleToken);
   const r = await fetch(url, {
     ...init,
     headers: { ...(init.headers || {}), Authorization: `Zoho-oauthtoken ${t}` },
     signal: AbortSignal.timeout(45_000),
   });
-  if (r.status === 401 && !retried) return zfetch(url, init, true);
+  if (r.status === 401 && !staleToken) return zfetch(url, init, t);
   if (r.status === 204) return null;
   const text = await r.text();
   if (!r.ok) throw new Error(`${r.status} from ${new URL(url).pathname}: ${text.slice(0, 200)}`);
@@ -121,10 +142,12 @@ function sourceDefs(win) {
 }
 
 // prev: the previous sources object, so a failed source keeps its last good data.
+// Sources run one after another: gentler on Zoho's API limits, and a pull only
+// happens a few times a day, so the extra seconds don't matter.
 async function loadAll(win, prev = {}) {
   const defs = sourceDefs(win);
   const next = {};
-  await Promise.all(Object.entries(defs).map(async ([key, fn]) => {
+  for (const [key, fn] of Object.entries(defs)) {
     try {
       next[key] = { data: await fn(), fetchedAt: new Date().toISOString(), error: null };
     } catch (e) {
@@ -132,7 +155,7 @@ async function loadAll(win, prev = {}) {
       next[key] = { data: old ? old.data : null, fetchedAt: old ? old.fetchedAt : null, error: String(e.message || e) };
       console.error(`[zoho] ${key} failed: ${next[key].error}`);
     }
-  }));
+  }
   return next;
 }
 
