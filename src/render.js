@@ -187,18 +187,38 @@ ${newTile}
     const y = Math.round((v / scaleMax) * plotH);
     grid += `<div aria-hidden="true" style="position:absolute;left:0;right:0;bottom:${y}px;border-top:1px dashed #3e3e3f"></div><span aria-hidden="true" style="position:absolute;left:0;bottom:${y + 6}px;font-size:13px;color:#b8b8b8">${money(v).replace('.00M', 'M')}</span>`;
   }
+  const n = curM;
+  // Columns sit edge to edge (spacing comes from padding), so month i's center is at (i + 0.5) / n.
+  const colPad = n > 9 ? 9 : 14;
   const cols = p.months.map((m, i) => {
     const hs = Math.round((m.std / scaleMax) * plotH), hv = Math.round((m.svc / scaleMax) * plotH);
     const mtd = i === curM - 1;
-    return `<div class="col"><p class="num" style="font-size:14px${mtd ? ';color:#ffdb05' : ''}">${money(m.std + m.svc)}</p>${hv ? `<div class="y" style="height:${hv}px;border-radius:4px 4px 0 0"></div>` : ''}${hs ? `<div class="vg" style="height:${hs}px;${hv ? '' : 'border-radius:4px 4px 0 0'}"></div>` : ''}</div>`;
+    return `<div class="col" style="padding:0 ${colPad}px"><p class="num" style="font-size:14px;position:relative;z-index:1;text-shadow:0 0 4px #262627,0 0 4px #262627${mtd ? ';color:#ffdb05' : ''}">${money(m.std + m.svc)}</p>${hv ? `<div class="y" style="height:${hv}px;border-radius:4px 4px 0 0"></div>` : ''}${hs ? `<div class="vg" style="height:${hs}px;${hv ? '' : 'border-radius:4px 4px 0 0'}"></div>` : ''}</div>`;
   }).join('');
-  const n = curM;
+
+  // Linear trend (least squares) over completed months only; the month-to-date month is left out.
+  const done = p.months.slice(0, n - 1).map((m) => m.std + m.svc);
+  let trendSvg = '';
+  let trendKey = '';
+  if (done.length >= 3) {
+    const k = done.length;
+    const mx = (k - 1) / 2;
+    const my = done.reduce((s, v) => s + v, 0) / k;
+    let num = 0, den = 0;
+    done.forEach((v, i) => { num += (i - mx) * (v - my); den += (i - mx) ** 2; });
+    const slope = num / den;
+    const at = (i) => my + slope * (i - mx);
+    const y = (v) => Math.max(0, Math.min(plotH, plotH - (v / scaleMax) * plotH)).toFixed(1);
+    const x = (i) => (((i + 0.5) / n) * 1000).toFixed(1);
+    trendSvg = `<svg aria-hidden="true" viewBox="0 0 1000 ${plotH}" preserveAspectRatio="none" style="position:absolute;left:0;bottom:0;width:100%;height:${plotH}px;overflow:visible;pointer-events:none"><line x1="${x(0)}" y1="${y(at(0))}" x2="${x(k - 1)}" y2="${y(at(k - 1))}" stroke="#ffffff" stroke-width="3" stroke-dasharray="10 8" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>`;
+    trendKey = `<span class="key"><span style="width:24px;border-top:3px dashed #ffffff;display:inline-block"></span>Trend ${MONTHS[0]}–${MONTHS[k - 1]}: ${slope >= 0 ? '+' : '−'}${money(Math.abs(slope))}/mo</span>`;
+  }
   const monthLbls = p.months.map((m, i) => `<p class="sub" style="text-align:center${i === n - 1 ? ';color:#ffdb05' : ''}">${MONTHS[m.m - 1]}${i === n - 1 ? '*' : ''}</p>`).join('');
   const counts = p.months.map((m, i) => `<p style="margin:0;text-align:center;font-weight:700;font-size:16px${i === n - 1 ? ';color:#ffdb05' : ''}">${m.nStd + m.nSvc}</p>`).join('');
-  const left = `<div class="card panel"><div class="ph"><h2 class="lbl">Closed-won revenue by month</h2><span class="key"><span class="sw g"></span>Standard pipeline</span><span class="key"><span class="sw y"></span>Service (CFSS)</span></div>
+  const left = `<div class="card panel"><div class="ph"><h2 class="lbl">Closed-won revenue by month</h2><span class="key"><span class="sw g"></span>Standard pipeline</span><span class="key"><span class="sw y"></span>Service (CFSS)</span>${trendKey}</div>
 <div style="position:relative;height:${plotH + 30}px;display:flex;padding-left:72px">${grid}
-<div style="position:relative;flex-grow:1;display:grid;grid-template-columns:repeat(${n},minmax(0,1fr));gap:${n > 9 ? 18 : 28}px;align-items:end;border-bottom:1px solid #3e3e3f">${cols}</div></div>
-<div style="display:grid;grid-template-columns:72px repeat(${n},minmax(0,1fr));column-gap:${n > 9 ? 18 : 28}px;row-gap:8px;align-items:center"><span></span>${monthLbls}<span style="font-size:13px;color:#b8b8b8">Deals won</span>${counts}</div>
+<div style="position:relative;flex-grow:1;display:grid;grid-template-columns:repeat(${n},minmax(0,1fr));gap:0;align-items:end;border-bottom:1px solid #3e3e3f">${cols}${trendSvg}</div></div>
+<div style="display:grid;grid-template-columns:72px repeat(${n},minmax(0,1fr));column-gap:0;row-gap:8px;align-items:center"><span></span>${monthLbls}<span style="font-size:13px;color:#b8b8b8">Deals won</span>${counts}</div>
 <p class="sub" style="font-size:13px">* ${MONTHS[n - 1]} is month to date.</p></div>`;
 
   // Open deals: stage (rows) x CRM layout / department (columns), cells shaded by count.
