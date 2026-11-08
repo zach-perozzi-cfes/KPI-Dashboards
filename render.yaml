@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: cfes-office-monitors
+    runtime: node
+    region: virginia
+    plan: starter
+    buildCommand: "true"
+    startCommand: node server.js
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: ZOHO_CLIENT_ID
+        sync: false
+      - key: ZOHO_CLIENT_SECRET
+        sync: false
+      - key: ZOHO_REFRESH_TOKEN
+        sync: false
+      - key: DASH_KEY
+        generateValue: true
+      - key: ZOHO_PORTAL_ID
+        value: "727368074"
+      - key: REFRESH_MINUTES
+        value: "10"
+      - key: POLL_SECONDS
+        value: "300"
