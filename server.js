@@ -127,11 +127,16 @@ let lastSlotKey = null;
 function tick() {
   const d = new Date();
   const hm = nowHM(d);
-  const key = `${nyDate(d.toISOString())} ${hm}`;
+  const today = nyDate(d.toISOString());
+  const key = `${today} ${hm}`;
   if (SLOTS.includes(hm) && key !== lastSlotKey) {
     lastSlotKey = key;
     refresh();
+    return;
   }
+  // Past midnight, re-run the numbers on the cached data so "today" (and the week) moves
+  // without waiting for the morning pull.
+  if (metrics && metrics.win && metrics.win.today !== today && !running) metrics = computeAll(sources, d);
 }
 
 server.listen(PORT, () => {
