@@ -228,7 +228,7 @@ const TASK_KINDS = [
   { key: 'permitOk', label: 'Permits received', src: 'tasksPermit', test: (n) => /^notify ho of permit approval/i.test(n) },
   { key: 'module', label: 'Module installs', src: 'tasksInstall', test: (n) => /^module install/i.test(n) },
   { key: 'electrical', label: 'Electrical installs', src: 'tasksInstall', test: (n) => /^electrical install/i.test(n) },
-  { key: 'ev', label: 'EV chargers installed', src: 'tasksInstall', test: (n) => /^ev charger install/i.test(n) },
+  { key: 'ev', label: 'EV chargers', src: 'tasksInstall', test: (n) => /^ev charger install/i.test(n) },
 ];
 const GROUP_LABELS = { EV: 'EV charger', 'Non PV Install': 'Non-PV install', Addition: 'PV addition', 'Commercial Installation': 'Commercial', 'Ungrouped Projects': 'Ungrouped' };
 

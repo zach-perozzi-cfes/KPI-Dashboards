@@ -156,7 +156,7 @@ For every task tile, the count is closed Zoho Projects tasks, bucketed by the we
 | Permits received | Pre-construction | Closed tasks | starts with "Notify HO of Permit Approval" |
 | Module installs | Installs completed | Closed tasks | starts with "Module Install" |
 | Electrical installs | Installs completed | Closed tasks | starts with "Electrical Install" |
-| EV chargers installed | Installs completed | Closed tasks | starts with "EV Charger Install" |
+| EV chargers | Installs completed | Closed tasks | starts with "EV Charger Install" |
 
 The task tiles count **tasks, not projects**. If one project has two closed tasks that both have "design" in the name, it adds 2 to Designs complete.
 
@@ -185,7 +185,6 @@ The task tiles count **tasks, not projects**. If one project has two closed task
 
 ### 4-week totals (list)
 - Each tile's 4 weekly counts added together, using the same sources and rules as the tiles above.
-- "Permits received" is highlighted in orange. That is only styling; it isn't based on a threshold.
 
 ---
 

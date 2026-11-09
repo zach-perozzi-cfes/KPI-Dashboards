@@ -305,7 +305,7 @@ ${o.tiles.map(tile).join('')}
 <div class="hb" style="grid-template-columns:170px minmax(0,1fr) 40px 64px;gap:16px 14px"><span style="font-size:13px;color:#b8b8b8">Type</span><span></span><span style="font-size:13px;color:#b8b8b8;text-align:right">4 wk</span><span style="font-size:13px;color:#b8b8b8;text-align:right">this wk</span>
 ${pr.groups.slice(0, 8).map((g) => `<span style="color:#eaeaea">${esc(g.name)}</span><div class="bar g" style="width:${Math.max(1, (g.n / gMax) * 100).toFixed(1)}%"></div><span class="r">${g.n}</span><span style="text-align:right;font-weight:700;color:${g.now ? '#ffdb05' : '#b8b8b8'}">${g.now}</span>`).join('')}</div></div>` : waiting();
   const totals = `<div class="card panel"><h2 class="lbl">4-week totals</h2><p class="sub">${md(win.weeks[0])} – ${md(addDays(win.ws, 6))}</p><div>
-${o.tiles.map((t) => `<div class="row"><span>${esc(t.label)}</span><span${t.key === 'permitOk' ? ' style="color:#f49c20"' : ''}>${t.wk ? sum(t.wk) : '–'}</span></div>`).join('')}</div></div>`;
+${o.tiles.map((t) => `<div class="row"><span>${esc(t.label)}</span><span>${t.wk ? sum(t.wk) : '–'}</span></div>`).join('')}</div></div>`;
   return `${tiles}<section style="display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr) minmax(0,0.8fr);gap:24px;flex-grow:1;min-height:0">${line}${types}${totals}</section>`;
 }
 
