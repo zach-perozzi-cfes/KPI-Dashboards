@@ -58,6 +58,10 @@ const REP_NAMES = {
   '4669422000001703001': 'Robert Parker',
   '4669422000210151001': 'Quintin Driskell',
 };
+// Owners left out of the meetings-by-rep grid (and its totals). The other meeting counts keep them.
+const GRID_EXCLUDE = new Set([
+  '4669422000210151001', // Quintin Driskell
+]);
 
 function sales(src, win) {
   if (!src.leads.data || !src.calls.data || !src.meetings.data) return null;
@@ -85,6 +89,7 @@ function sales(src, win) {
   const weekend = dow(win.today) === 0 || dow(win.today) === 6;
   const gridWs = weekend ? win.nextWs : win.ws;
   const gridMtgs = src.meetings.data
+    .filter((r) => !GRID_EXCLUDE.has(r.ownerId))
     .map((r) => ({ d: nyDate(r.t), owner: REP_NAMES[r.ownerId] || r.owner || 'Unassigned' }))
     .filter((x) => inRange(x.d, gridWs, addDays(gridWs, 5)));
   const repTotals = new Map();
