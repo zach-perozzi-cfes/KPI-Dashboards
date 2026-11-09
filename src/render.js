@@ -68,8 +68,11 @@ h2.lbl{font-size:20px}
 .ph h2{flex-grow:1}
 .key{display:flex;align-items:center;gap:8px;font-size:15px;color:#eaeaea}
 .sw{width:14px;height:14px;border-radius:3px;display:inline-block}
-.leg{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 24px}
-.leg b{color:#fff}
+.mx{display:grid;grid-template-columns:minmax(0,1fr) repeat(5,92px) 72px;gap:6px 8px;align-items:center}
+.mh{text-align:center;font-size:15px;color:#eaeaea;font-weight:700;white-space:nowrap}
+.mr{color:#eaeaea;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc{display:flex;align-items:center;justify-content:center;border-radius:6px;font-weight:700;font-size:18px}
+.mt{text-align:center;font-weight:700;font-size:18px;white-space:nowrap}
 .g{background:#71a62b}.y{background:#ffdb05}.o{background:#f49c20}.l{background:#eaeaea}
 .vg{background:linear-gradient(180deg,#71a62b,#5a881c)}
 .vo{background:linear-gradient(180deg,#ffdb05,#f49c20)}
@@ -136,35 +139,34 @@ function salesBoard(s, win) {
     const ho = Math.round((d.out / cMax) * plotH), hi = Math.round((d.inb / cMax) * plotH);
     return `<div class="col"><p class="num">${d.out + d.inb}</p>${hi ? `<div class="y" style="height:${hi}px;border-radius:4px 4px 0 0"></div>` : ''}${ho ? `<div class="vg" style="height:${ho}px;${hi ? '' : 'border-radius:4px 4px 0 0'}"></div>` : ''}</div>`;
   }).join('');
-  // Next week's meetings, stacked by rep (busiest rep at the bottom). Five brand colors;
-  // past five reps, the smallest are folded into "Other".
-  const REP_COLORS = ['#71a62b', '#ffdb05', '#f49c20', '#eaeaea', '#5f5f61'];
+  // Next week's meetings as a rep x day grid, cells shaded by count. Up to six rows;
+  // past that, the reps with the fewest meetings fold into "Other".
+  const MAX_REPS = 6;
   let reps = s.reps.map((r, i) => ({ ...r, idx: [i] }));
-  if (reps.length > REP_COLORS.length) {
-    const rest = reps.slice(REP_COLORS.length - 1);
-    reps = [...reps.slice(0, REP_COLORS.length - 1), { name: `Other (${rest.length})`, n: sum(rest.map((r) => r.n)), idx: rest.flatMap((r) => r.idx) }];
+  if (reps.length > MAX_REPS) {
+    const rest = reps.slice(MAX_REPS - 1);
+    reps = [...reps.slice(0, MAX_REPS - 1), { name: `Other (${rest.length})`, n: sum(rest.map((r) => r.n)), idx: rest.flatMap((r) => r.idx), other: true }];
   }
-  const mPlotH = 150;
-  const nMax = Math.max(1, ...s.nextDays.map((d) => d.n));
-  const mtgCols = s.nextDays.map((d) => {
-    const segs = reps.map((r, ri) => ({ n: sum(r.idx.map((i) => d.byRep[i] || 0)), c: REP_COLORS[ri] })).filter((x) => x.n);
-    const html = segs.reverse().map((x, i) => {
-      const h = Math.round((x.n / nMax) * mPlotH);
-      return `<div style="height:${h}px;background:${x.c};${i === 0 ? 'border-radius:4px 4px 0 0' : 'border-top:2px solid #262627'}"></div>`;
-    }).join('');
-    return `<div class="col"><p class="num">${d.n}</p>${html}</div>`;
-  }).join('');
-  const isLight = (d) => nMax >= 4 && d.n < nMax / 2;
-  const mtgLbl = s.nextDays.map((d, i) => `<p${isLight(d) ? ' style="color:#ffdb05;font-weight:700"' : ''}>${DAYS[i]} ${dnum(d.day)}${isLight(d) ? ' · light' : ''}</p>`).join('');
-  const repKey = reps.map((r, ri) => `<span class="key"><span class="sw" style="background:${REP_COLORS[ri]}"></span>${esc(r.name)} <b>${r.n}</b></span>`).join('');
+  const repCells = reps.map((r) => s.nextDays.map((d) => sum(r.idx.map((i) => d.byRep[i] || 0))));
+  const cMaxM = Math.max(1, ...repCells.flat());
+  const dMax = Math.max(1, ...s.nextDays.map((d) => d.n));
+  const isLight = (d) => dMax >= 4 && d.n < dMax / 2;
+  const cellH = reps.length > 5 ? 28 : 32;
+  const mHead = `<span></span>${s.nextDays.map((d, i) => `<span class="mh"${isLight(d) ? ' style="color:#ffdb05"' : ''}>${DAYS[i]} ${dnum(d.day)}</span>`).join('')}<span class="mh" style="color:#ffdb05">Total</span>`;
+  const mBody = reps.map((r, ri) => `<span class="mr"${r.other ? ' style="color:#b8b8b8"' : ''}>${esc(r.name)}</span>${repCells[ri].map((v) => (v
+    ? `<span class="mc" style="height:${cellH}px;background:rgba(113,166,43,${(0.18 + 0.72 * (v / cMaxM)).toFixed(2)})">${v}</span>`
+    : `<span class="mc" style="height:${cellH}px;color:#5f5f61;font-weight:400">·</span>`)).join('')}<span class="mt">${r.n}</span>`).join('');
+  const mFoot = `<span class="mr" style="color:#b8b8b8">Per day</span>${s.nextDays.map((d) => `<span class="mt"${isLight(d) ? ' style="color:#ffdb05"' : ''}>${d.n}${isLight(d) ? ' · light' : ''}</span>`).join('')}<span class="mt" style="color:#ffdb05">${s.nextTotal}</span>`;
+  const mtgGrid = reps.length
+    ? `<div class="mx">${mHead}${mBody}${mFoot}</div>`
+    : '<div class="empty" style="font-size:18px">No meetings booked for next week yet</div>';
   const dayLbl = (arr) => arr.map((d, i) => `<p>${DAYS[i]} ${dnum(d.day)}</p>`).join('');
 
   const charts = `<section style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;height:340px;flex-shrink:0">
 <div class="card panel"><div class="ph"><h2 class="lbl">Calls per day, this week</h2><span class="key"><span class="sw g"></span>Outbound</span><span class="key"><span class="sw y"></span>Inbound</span></div>
 <div class="cols" style="grid-template-columns:repeat(5,minmax(0,1fr))">${callCols}</div><div class="xl" style="grid-template-columns:repeat(5,minmax(0,1fr))">${dayLbl(s.callDays)}</div></div>
-<div class="card panel"><div class="ph"><h2 class="lbl">Meetings on the calendar, next week · by rep</h2><span class="sub">${s.nextTotal} total</span></div>
-<div class="cols" style="grid-template-columns:repeat(5,minmax(0,1fr))">${mtgCols}</div><div class="xl" style="grid-template-columns:repeat(5,minmax(0,1fr))">${mtgLbl}</div>
-<div class="leg">${repKey || '<span class="sub">No meetings booked yet</span>'}</div></div>
+<div class="card panel"><div class="ph"><h2 class="lbl">Meetings on the calendar, next week · by rep</h2><span class="sub">${s.nextTotal} total · week of ${esc(md(win.nextWs))}</span></div>
+${mtgGrid}</div>
 </section>`;
 
   const sMax = Math.max(1, ...s.sources.map((x) => x.n));

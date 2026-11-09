@@ -49,6 +49,16 @@ function perWeek(dates, weeks) {
 }
 
 // ---------- Sales ----------
+// CRM user ids -> full names. The CRM owner field only carries a last name for these
+// users; anyone not listed shows the name CRM sends.
+const REP_NAMES = {
+  '4669422000033748001': 'Dar Hubsch',
+  '4669422000061733042': 'Caleb Timothy',
+  '4669422000001469001': 'John Padden',
+  '4669422000001703001': 'Robert Parker',
+  '4669422000210151001': 'Quintin Driskell',
+};
+
 function sales(src, win) {
   if (!src.leads.data || !src.calls.data || !src.meetings.data) return null;
   const leadDates = src.leads.data.map((r) => ({ d: nyDate(r.t), src: r.src }));
@@ -67,7 +77,7 @@ function sales(src, win) {
   const thisWeekCalls = calls.filter((x) => weekIndex(x.d, [win.ws]) === 0);
   // Next week's meetings, split by meeting owner (the rep running it).
   const nextMtgs = src.meetings.data
-    .map((r) => ({ d: nyDate(r.t), owner: r.owner || 'Unassigned' }))
+    .map((r) => ({ d: nyDate(r.t), owner: REP_NAMES[r.ownerId] || r.owner || 'Unassigned' }))
     .filter((x) => inRange(x.d, win.nextWs, addDays(win.nextWs, 5)));
   const repTotals = new Map();
   for (const m of nextMtgs) repTotals.set(m.owner, (repTotals.get(m.owner) || 0) + 1);
