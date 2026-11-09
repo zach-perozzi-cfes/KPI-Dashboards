@@ -68,6 +68,8 @@ h2.lbl{font-size:20px}
 .ph h2{flex-grow:1}
 .key{display:flex;align-items:center;gap:8px;font-size:15px;color:#eaeaea}
 .sw{width:14px;height:14px;border-radius:3px;display:inline-block}
+.leg{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 24px}
+.leg b{color:#fff}
 .g{background:#71a62b}.y{background:#ffdb05}.o{background:#f49c20}.l{background:#eaeaea}
 .vg{background:linear-gradient(180deg,#71a62b,#5a881c)}
 .vo{background:linear-gradient(180deg,#ffdb05,#f49c20)}
@@ -134,19 +136,35 @@ function salesBoard(s, win) {
     const ho = Math.round((d.out / cMax) * plotH), hi = Math.round((d.inb / cMax) * plotH);
     return `<div class="col"><p class="num">${d.out + d.inb}</p>${hi ? `<div class="y" style="height:${hi}px;border-radius:4px 4px 0 0"></div>` : ''}${ho ? `<div class="vg" style="height:${ho}px;${hi ? '' : 'border-radius:4px 4px 0 0'}"></div>` : ''}</div>`;
   }).join('');
+  // Next week's meetings, stacked by rep (busiest rep at the bottom). Five brand colors;
+  // past five reps, the smallest are folded into "Other".
+  const REP_COLORS = ['#71a62b', '#ffdb05', '#f49c20', '#eaeaea', '#5f5f61'];
+  let reps = s.reps.map((r, i) => ({ ...r, idx: [i] }));
+  if (reps.length > REP_COLORS.length) {
+    const rest = reps.slice(REP_COLORS.length - 1);
+    reps = [...reps.slice(0, REP_COLORS.length - 1), { name: `Other (${rest.length})`, n: sum(rest.map((r) => r.n)), idx: rest.flatMap((r) => r.idx) }];
+  }
+  const mPlotH = 150;
   const nMax = Math.max(1, ...s.nextDays.map((d) => d.n));
   const mtgCols = s.nextDays.map((d) => {
-    const h = Math.round((d.n / nMax) * plotH);
-    const light = nMax >= 4 && d.n < nMax / 2;
-    return `<div class="col"><p class="num">${d.n}</p>${h ? `<div class="${light ? 'vo' : 'vg'}" style="height:${h}px;border-radius:4px 4px 0 0"></div>` : ''}</div>`;
+    const segs = reps.map((r, ri) => ({ n: sum(r.idx.map((i) => d.byRep[i] || 0)), c: REP_COLORS[ri] })).filter((x) => x.n);
+    const html = segs.reverse().map((x, i) => {
+      const h = Math.round((x.n / nMax) * mPlotH);
+      return `<div style="height:${h}px;background:${x.c};${i === 0 ? 'border-radius:4px 4px 0 0' : 'border-top:2px solid #262627'}"></div>`;
+    }).join('');
+    return `<div class="col"><p class="num">${d.n}</p>${html}</div>`;
   }).join('');
+  const isLight = (d) => nMax >= 4 && d.n < nMax / 2;
+  const mtgLbl = s.nextDays.map((d, i) => `<p${isLight(d) ? ' style="color:#ffdb05;font-weight:700"' : ''}>${DAYS[i]} ${dnum(d.day)}${isLight(d) ? ' · light' : ''}</p>`).join('');
+  const repKey = reps.map((r, ri) => `<span class="key"><span class="sw" style="background:${REP_COLORS[ri]}"></span>${esc(r.name)} <b>${r.n}</b></span>`).join('');
   const dayLbl = (arr) => arr.map((d, i) => `<p>${DAYS[i]} ${dnum(d.day)}</p>`).join('');
 
   const charts = `<section style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;height:340px;flex-shrink:0">
 <div class="card panel"><div class="ph"><h2 class="lbl">Calls per day, this week</h2><span class="key"><span class="sw g"></span>Outbound</span><span class="key"><span class="sw y"></span>Inbound</span></div>
 <div class="cols" style="grid-template-columns:repeat(5,minmax(0,1fr))">${callCols}</div><div class="xl" style="grid-template-columns:repeat(5,minmax(0,1fr))">${dayLbl(s.callDays)}</div></div>
-<div class="card panel"><div class="ph"><h2 class="lbl">Meetings on the calendar, next week</h2><span class="sub">${s.nextTotal} total · this week ${m3}</span></div>
-<div class="cols" style="grid-template-columns:repeat(5,minmax(0,1fr))">${mtgCols}</div><div class="xl" style="grid-template-columns:repeat(5,minmax(0,1fr))">${dayLbl(s.nextDays)}</div></div>
+<div class="card panel"><div class="ph"><h2 class="lbl">Meetings on the calendar, next week · by rep</h2><span class="sub">${s.nextTotal} total</span></div>
+<div class="cols" style="grid-template-columns:repeat(5,minmax(0,1fr))">${mtgCols}</div><div class="xl" style="grid-template-columns:repeat(5,minmax(0,1fr))">${mtgLbl}</div>
+<div class="leg">${repKey || '<span class="sub">No meetings booked yet</span>'}</div></div>
 </section>`;
 
   const sMax = Math.max(1, ...s.sources.map((x) => x.n));

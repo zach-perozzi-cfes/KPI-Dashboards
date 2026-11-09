@@ -128,8 +128,8 @@ function sourceDefs(win) {
       .then((rows) => rows.map((r) => ({ t: r.Created_Time, src: r.Lead_Source || 'None' }))),
     calls: () => coqlAll(`select Call_Start_Time, Call_Type from Calls where Call_Start_Time >= '${since}'`)
       .then((rows) => rows.map((r) => ({ t: r.Call_Start_Time, type: r.Call_Type || '' }))),
-    meetings: () => coqlAll(`select Start_DateTime from Events where Start_DateTime between '${since}' and '${until}'`)
-      .then((rows) => rows.map((r) => ({ t: r.Start_DateTime }))),
+    meetings: () => coqlAll(`select Start_DateTime, Owner from Events where Start_DateTime between '${since}' and '${until}'`)
+      .then((rows) => rows.map((r) => ({ t: r.Start_DateTime, owner: (r.Owner && r.Owner.name) || 'Unassigned' }))),
     // Closed Deferred is treated like Closed Lost (not open, not won).
     openDeals: () => coqlAll(`select Stage, Amount, Layout from Deals where Stage not in ('Closed Won', 'Closed Lost', 'Closed Deferred', 'Closed Disqualified', 'Closed Hold', 'Appointment Cancelled')`)
       .then((rows) => rows.map((r) => ({ stage: r.Stage || 'Unknown', amount: Number(r.Amount) || 0, layout: (r.Layout && r.Layout.name) || 'No layout' }))),

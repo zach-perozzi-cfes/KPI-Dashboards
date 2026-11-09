@@ -65,9 +65,19 @@ function sales(src, win) {
     return { day, out: c.filter((x) => x.out).length, inb: c.filter((x) => !x.out).length };
   });
   const thisWeekCalls = calls.filter((x) => weekIndex(x.d, [win.ws]) === 0);
+  // Next week's meetings, split by meeting owner (the rep running it).
+  const nextMtgs = src.meetings.data
+    .map((r) => ({ d: nyDate(r.t), owner: r.owner || 'Unassigned' }))
+    .filter((x) => inRange(x.d, win.nextWs, addDays(win.nextWs, 5)));
+  const repTotals = new Map();
+  for (const m of nextMtgs) repTotals.set(m.owner, (repTotals.get(m.owner) || 0) + 1);
+  const reps = [...repTotals.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([name, n]) => ({ name, n }));
   const nextDays = [0, 1, 2, 3, 4].map((i) => {
     const day = addDays(win.nextWs, i);
-    return { day, n: mtgDates.filter((d) => d === day).length };
+    const todays = nextMtgs.filter((m) => m.d === day);
+    return { day, n: todays.length, byRep: reps.map((r) => todays.filter((m) => m.owner === r.name).length) };
   });
 
   const counts = new Map();
@@ -84,7 +94,7 @@ function sales(src, win) {
     leadsWk, callsWk, mtgWk,
     callsOut: thisWeekCalls.filter((x) => x.out).length,
     callsIn: thisWeekCalls.filter((x) => !x.out).length,
-    callDays, nextDays,
+    callDays, nextDays, reps,
     nextTotal: nextDays.reduce((s, x) => s + x.n, 0),
     sources: other ? [...top, other] : top,
     sourcesTotal: sorted.reduce((s, x) => s + x[1], 0),
