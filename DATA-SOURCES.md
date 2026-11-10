@@ -6,7 +6,7 @@ This file traces every number and chart on the three office monitor boards back 
 
 - **When:** once when the server starts, then at the times in `REFRESH_TIMES`. The default is 7:00 AM, 12:00 PM and 4:00 PM Eastern. Between pulls the boards show the server's cached copy and never call Zoho.
 - **Access:** read-only. Zoho CRM is queried with COQL (`POST /crm/v7/coql`). Zoho Projects is queried with REST v3 (`/api/v3/portal/727368074/...`).
-- **Sources:** there are ten. Each one is fetched on its own, so if one fails it keeps its last good data and the board shows "refresh delayed".
+- **Sources:** there are eleven. Each one is fetched on its own, so if one fails it keeps its last good data and the board shows "refresh delayed".
 - **Time zone:** all dates are bucketed in America/New_York.
 - **"Updated" time in each header:** the oldest fetch time among that board's sources.
 
@@ -19,14 +19,16 @@ This file traces every number and chart on the three office monitor boards back 
 | Next week | The following Monday–Friday. |
 | Month to date | The 1st of this month through today. |
 | Year to date | Jan 1 through today. |
+| Last month | The 1st through the last day of the previous calendar month. |
 
-### The ten sources
+### The eleven sources
 
 | Source | Zoho app / module | Query | Fields used |
 | --- | --- | --- | --- |
 | `leads` | CRM · Leads | `Created_Time >=` 22 days before this Monday | `Created_Time`, `Lead_Source` (blank becomes "None") |
 | `calls` | CRM · Calls | `Call_Start_Time >=` 22 days before this Monday | `Call_Start_Time`, `Call_Type` |
 | `meetings` | CRM · Events (Meetings) | `Start_DateTime` between 22 days before this Monday and the Sunday after next | `Start_DateTime`, `Owner` (name and id) |
+| `apptSat` | CRM · Deals | `Appointment_Date` between the 1st and the last day of last month | `Appointment_Date`, `Lead_Source` (blank becomes "None"), `Scheduled_Appointment_Quality` |
 | `openDeals` | CRM · Deals | `Stage not in` Closed Won, Closed Lost, Closed Deferred, Closed Disqualified, Closed Hold, Appointment Cancelled. No date filter: every open deal. | `Stage`, `Amount` (blank = 0), `Layout` |
 | `newDeals` | CRM · Deals | `Created_Time >=` the 1st of last month | `Created_Time`, `Pipeline` |
 | `wonDeals` | CRM · Deals | `Stage = 'Closed Won'` and `Closing_Date >=` Jan 1 | `Closing_Date`, `Amount`, `Pipeline` |
@@ -44,7 +46,7 @@ This file traces every number and chart on the three office monitor boards back 
 
 ## Inside Sales (`/left`)
 
-Sources: `leads`, `calls`, `meetings` (Zoho CRM).
+Sources: `leads`, `calls`, `meetings`, `apptSat` (Zoho CRM).
 
 ### Leads created (tile)
 - **Big number:** Leads with `Created_Time` in this week (Mon–Sun).
@@ -82,12 +84,12 @@ Sources: `leads`, `calls`, `meetings` (Zoho CRM).
 - The top 8 sources each get a bar. The rest are combined into one grey "Other (n sources)" bar.
 - **Header:** the total number of leads in those 4 weeks, and the first date of the range.
 
-### 4-week trend (table)
-- The weekly counts behind the three tiles above, for each of the last 4 weeks (Mon–Sun):
-  - **Leads** by `Created_Time`.
-  - **Calls** by `Call_Start_Time`.
-  - **Meetings** by Event `Start_DateTime`, every owner included.
-- The current week's row is yellow.
+### Appointments sat by source · last month (bar chart)
+- **What it counts:** Deals whose `Appointment_Date` falls in last month (for example, all of October when viewed in November), grouped by `Lead_Source`.
+- **What counts as "sat":** `Scheduled_Appointment_Quality` (shown in CRM as "Appointment Quality") is filled in and isn't "D (Not Good, Questionable)". A deal with no quality score is left out.
+- **Where the rule came from:** CRM has no field that marks an appointment as sat. This rule was fitted to the CRM report "Appointments Sat by Source - Last Month". For October 2026 it matched Tesla 10, Phone 9, Website - Quote Page 7 and Events & Seminars 3 exactly. It gave DemandIQ 7 (report 6) and Duke Energy Program 5 (report 6). The report's own filter couldn't be read through the API.
+- The top 8 sources each get a bar. The rest are combined into one grey "Other (n sources)" bar.
+- **Header:** the total number of appointments sat last month.
 
 ---
 
@@ -195,7 +197,7 @@ The task tiles count **tasks, not projects**. If one project has two closed task
 - **Weekends:** "This week" counts include Saturday and Sunday, even though the header and the daily charts show Monday–Friday.
 - **Quintin Driskell:** left out of the meetings-by-rep grid, but included in every other meeting count.
 - **Open deals:** the stage grid includes open deals of every age. A deal left in an early stage for years still shows up there.
-- **Fixed EST offset in the date filters:** the CRM date filters are written with a fixed `-05:00` offset, so during daylight saving time the cutoff is one hour off. This doesn't change any number shown, because the fetch starts a day earlier than the oldest week the boards display. The "New deals" filter starts on the 1st of last month, so its comparison could in theory lose a deal created in the first hour of that day during daylight saving time.
+- **Fixed EST offset in the date filters:** the CRM date filters are written with a fixed `-05:00` offset, so during daylight saving time the cutoff is one hour off. This doesn't change any number shown, because the fetch starts a day earlier than the oldest week the boards display. The "New deals" filter starts on the 1st of last month, so its comparison could in theory lose a deal created in the first hour of that day during daylight saving time. The "Appointments sat" filter has the same gap: an appointment between midnight and 1 AM on the 1st of last month would be missed.
 - **Row limits per pull:**
 
   | Source | Most rows read |

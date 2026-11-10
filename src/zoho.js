@@ -126,6 +126,9 @@ function sourceDefs(win) {
   return {
     leads: () => coqlAll(`select Created_Time, Lead_Source from Leads where Created_Time >= '${since}'`)
       .then((rows) => rows.map((r) => ({ t: r.Created_Time, src: r.Lead_Source || 'None' }))),
+    // Deals whose appointment was last month; metrics.js keeps the ones that sat.
+    apptSat: () => coqlAll(`select Appointment_Date, Lead_Source, Scheduled_Appointment_Quality from Deals where Appointment_Date between '${win.prevMonthStart}T00:00:00-05:00' and '${win.prevMonthEnd}T23:59:59-05:00'`)
+      .then((rows) => rows.map((r) => ({ t: r.Appointment_Date, src: r.Lead_Source || 'None', q: r.Scheduled_Appointment_Quality || '' }))),
     calls: () => coqlAll(`select Call_Start_Time, Call_Type from Calls where Call_Start_Time >= '${since}'`)
       .then((rows) => rows.map((r) => ({ t: r.Call_Start_Time, type: r.Call_Type || '' }))),
     meetings: () => coqlAll(`select Start_DateTime, Owner from Events where Start_DateTime between '${since}' and '${until}'`)

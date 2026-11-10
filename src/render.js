@@ -5,7 +5,7 @@ const { addDays } = require('./metrics');
 const { nextSlot, maxGapHours, slotLabel } = require('./schedule');
 
 const BOARDS = {
-  left: { title: 'Inside Sales', sources: ['leads', 'calls', 'meetings'], system: 'Zoho CRM' },
+  left: { title: 'Inside Sales', sources: ['leads', 'calls', 'meetings', 'apptSat'], system: 'Zoho CRM' },
   middle: { title: 'Sales Pipeline', sources: ['openDeals', 'wonDeals', 'newDeals'], system: 'Zoho CRM Deals' },
   right: { title: 'Operations', sources: ['projects', 'tasksDesign', 'tasksPermit', 'tasksInstall'], system: 'Zoho Projects' },
 };
@@ -180,11 +180,16 @@ ${mtgGrid}</div>
 
   const sMax = Math.max(1, ...s.sources.map((x) => x.n));
   const srcRows = s.sources.map((x) => `<span style="color:${x.other ? '#b8b8b8' : '#eaeaea'}">${esc(x.name)}</span><div class="bar ${x.other ? 'l' : 'g'}" style="width:${Math.max(1, (x.n / sMax) * 100).toFixed(1)}%"></div><span class="r">${x.n}</span>`).join('');
-  const wkRows = win.weeks.map((w, i) => `<tr class="${i === 3 ? 'now' : ''}"><th scope="row">${md(w)}${i === 3 ? ' · this wk' : ''}</th><td>${s.leadsWk[i]}</td><td>${s.callsWk[i]}</td><td>${s.mtgWk[i]}</td></tr>`).join('');
+  const prevMon = MONTHS[Number(win.prevMonthStart.slice(5, 7)) - 1];
+  const sat = s.apptSat;
+  const satMax = sat ? Math.max(1, ...sat.rows.map((x) => x.n)) : 1;
+  const satRows = sat ? sat.rows.map((x) => `<span style="color:${x.other ? '#b8b8b8' : '#eaeaea'}">${esc(x.name)}</span><div class="bar ${x.other ? 'l' : 'g'}" style="width:${Math.max(1, (x.n / satMax) * 100).toFixed(1)}%"></div><span class="r">${x.n}</span>`).join('') : '';
+  const satBody = !sat ? '<span class="sub">waiting for Zoho</span>' : satRows || `<span class="sub">No appointments sat in ${prevMon}</span>`;
   const bottom = `<section style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:24px;flex-grow:1;min-height:0">
 <div class="card panel" style="gap:10px"><div class="ph"><h2 class="lbl">Lead sources · last 4 weeks</h2><span class="sub">${s.sourcesTotal} leads since ${md(win.weeks[0])}</span></div>
 <div class="hb" style="grid-template-columns:240px minmax(0,1fr) 48px;gap:7px 16px">${srcRows || '<span class="sub">No leads yet</span>'}</div></div>
-<div class="card panel"><h2 class="lbl">4-week trend</h2><table><thead><tr><th scope="col" style="color:#b8b8b8">Week of</th><th scope="col">Leads</th><th scope="col">Calls</th><th scope="col">Meetings</th></tr></thead><tbody>${wkRows}</tbody></table></div>
+<div class="card panel" style="gap:10px"><div class="ph"><h2 class="lbl">Appointments sat by source · ${prevMon}</h2><span class="sub">${sat ? `${sat.total} sat` : ''}</span></div>
+<div class="hb" style="grid-template-columns:220px minmax(0,1fr) 48px;gap:7px 16px">${satBody}</div></div>
 </section>`;
   return kpis + charts + bottom;
 }
@@ -296,8 +301,7 @@ function lineChart(pr) {
 
 function opsBoard(o, win) {
   const tiles = `<section class="tiles"><p class="grp" style="grid-column:span 4;border-bottom:2px solid #71a62b">Pre-construction</p><p class="grp" style="grid-column:span 3;border-bottom:2px solid #ffdb05">Installs completed</p>
-${o.tiles.map(tile).join('')}
-<p class="sub" style="grid-column:span 7;font-size:13px">Mini bars: weeks of ${win.weeks.map(md).join(', ')} (green = this week). Counts are Zoho Projects tasks completed that week.</p></section>`;
+${o.tiles.map(tile).join('')}</section>`;
   const pr = o.projects;
   const line = pr ? `<div class="card panel" style="gap:10px"><div class="ph"><h2 class="lbl">Projects created · running total</h2><span class="key"><span style="width:18px;height:4px;background:#71a62b;display:inline-block"></span>This week</span><span class="key"><span style="width:18px;border-top:2px dashed #eaeaea;display:inline-block"></span>Last week</span></div>${lineChart(pr)}</div>` : waiting();
   const gMax = pr ? Math.max(1, ...pr.groups.map((g) => g.n)) : 1;

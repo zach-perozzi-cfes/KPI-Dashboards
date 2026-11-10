@@ -28,6 +28,7 @@ function windowFor(now = new Date()) {
   return {
     monthStart,
     prevMonthStart,
+    prevMonthEnd: addDays(monthStart, -1),
     today,
     ws,
     weeks,
@@ -122,7 +123,27 @@ function sales(src, win) {
   const rest = sorted.slice(8);
   const other = rest.length ? { name: `Other (${rest.length} source${rest.length > 1 ? 's' : ''})`, n: rest.reduce((s, x) => s + x[1], 0), other: true } : null;
 
+  // Appointments sat last month, by lead source. A deal counts when its Appointment_Date
+  // falls in last month and Appointment Quality is filled in and not "D". This rule was
+  // fitted to the "Appointments Sat by Source - Last Month" report in CRM.
+  let apptSat = null;
+  if (src.apptSat && src.apptSat.data) {
+    const satCounts = new Map();
+    for (const r of src.apptSat.data) {
+      const d = nyDate(r.t);
+      if (!inRange(d, win.prevMonthStart, win.monthStart)) continue;
+      if (!r.q || /^D /.test(r.q)) continue;
+      satCounts.set(r.src, (satCounts.get(r.src) || 0) + 1);
+    }
+    const satSorted = [...satCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    const satTop = satSorted.slice(0, 8).map(([name, n]) => ({ name, n }));
+    const satRest = satSorted.slice(8);
+    if (satRest.length) satTop.push({ name: `Other (${satRest.length} source${satRest.length > 1 ? 's' : ''})`, n: satRest.reduce((t, x) => t + x[1], 0), other: true });
+    apptSat = { rows: satTop, total: satSorted.reduce((t, x) => t + x[1], 0) };
+  }
+
   return {
+    apptSat,
     leadsWk, callsWk, mtgWk,
     callsOut: thisWeekCalls.filter((x) => x.out).length,
     callsIn: thisWeekCalls.filter((x) => !x.out).length,
