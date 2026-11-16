@@ -93,12 +93,13 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;te
 /* FLARE: floating button, emoji picker, confirmation toast */
 .fab{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom) + 16px);z-index:6;background:linear-gradient(180deg,#ffdb05,#f49c20);color:#262627;font-weight:700;font-size:14px;letter-spacing:.08em;padding:13px 20px;border-radius:26px;box-shadow:0 4px 16px rgba(0,0,0,.55)}
 .fab:active{transform:scale(.96)}
-.picker{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom) + 74px);z-index:7;width:252px;background:#262627;border:1px solid #3e3e3f;border-radius:14px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.6);display:none}
+.picker{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom) + 74px);z-index:7;width:220px;background:#262627;border:1px solid #3e3e3f;border-radius:14px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.6);display:none}
 .picker.open{display:block}
 .picker p{margin:0 0 8px;font-size:12px;color:#b8b8b8;line-height:1.4}
-.emo{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.emo{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .emo button{font-size:30px;line-height:1;padding:9px 0;text-align:center;border-radius:10px;font-family:'Noto Color Emoji','Apple Color Emoji','Segoe UI Emoji',sans-serif}
 .emo button:active{background:#3e3e3f}
+.emo img{height:34px;width:auto;display:block;margin:-2px auto}
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 80px);transform:translateX(-50%);z-index:8;background:#1f1f20;border:1px solid #3e3e3f;padding:9px 16px;border-radius:18px;font-size:13px;white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
 .login{margin:auto;max-width:340px;padding:32px 24px;text-align:center}
@@ -311,7 +312,7 @@ const CLIENT_JS = `
       .then(function(r){
         if(r.status===401){location.reload();return;}
         return r.json().then(function(j){
-          if(r.ok){flareBurst(emoji);toast('Sent to the '+titles[i]+' TV '+emoji);}
+          if(r.ok){flareBurst(emoji);toast('Sent to the '+titles[i]+' TV'+(FLARE_IMG[emoji]?'':' '+emoji));}
           else toast(j&&j.error?j.error:'Couldn’t send');
         });
       }).catch(function(){toast('Couldn’t send. Check your connection.');});
@@ -357,7 +358,7 @@ function renderMobile(metrics, sources, pollMs, { fragment = false } = {}) {
 <main id="strip">${panes(metrics)}</main><div id="stats" hidden>${stats(sources)}</div>
 <div id="sheet" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="sht"><div class="shh"><button type="button" id="close" aria-label="Back">‹ Back</button><h2 id="sht"></h2></div><div id="shb"></div></div>
 <button type="button" class="fab" id="fab" aria-haspopup="true" aria-expanded="false" aria-controls="picker">FLARE</button>
-<div class="picker" id="picker" role="menu"><p id="pk-to"></p><div class="emo">${flare.EMOJI.map((e) => `<button type="button" role="menuitem" data-flare="${e}" aria-label="Send ${e}">${e}</button>`).join('')}</div></div>
+<div class="picker" id="picker" role="menu"><p id="pk-to"></p><div class="emo">${flare.EMOJI.map((e) => `<button type="button" role="menuitem" data-flare="${e}" aria-label="Send ${e}">${e}</button>`).join('')}${Object.entries(flare.CUSTOM).map(([k, v]) => `<button type="button" role="menuitem" data-flare="${k}" aria-label="Send ${esc(v.label)}"><img src="${v.src}" alt=""></button>`).join('')}</div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div><div id="flares" aria-hidden="true"></div>
 <script>${flare.BURST_JS}${CLIENT_JS.replace('POLL_MS', String(pollMs)).replace('TITLES', JSON.stringify(TABS.map(([k]) => BOARDS[k].title)))}</script></body></html>`;
 }

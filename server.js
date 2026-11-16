@@ -24,6 +24,8 @@ const DASH_PASS = process.env.DASH_PASS || '';
 const ALLOWED_IPS = (process.env.ALLOWED_IPS || '').split(',').map((s) => s.trim()).filter(Boolean);
 const FIXTURE = process.env.DEMO_FIXTURE || ''; // local testing only
 const LOGO = fs.readFileSync(path.join(__dirname, 'public', 'logo.png'));
+// Picture flares (public/flare/<key>.png), read once at startup.
+const FLARE_PNGS = Object.fromEntries(Object.keys(flare.CUSTOM).map((k) => [`/flare/${k}.png`, fs.readFileSync(path.join(__dirname, 'public', 'flare', `${k}.png`))]));
 // Phone view: signing in = scanning the QR code on a TV board; the session ends at midnight Eastern.
 // In fixture mode a throwaway secret is made up so it works locally.
 const MOBILE_SECRET = process.env.MOBILE_SECRET || (FIXTURE ? crypto.randomBytes(32).toString('hex') : '');
@@ -135,6 +137,7 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/healthz') return send(200, 'text/plain', 'ok');
   if (url.pathname === '/logo.png') return send(200, 'image/png', LOGO, { 'Cache-Control': 'public, max-age=86400' });
   if (url.pathname === '/favicon.ico') return send(204, 'text/plain', '');
+  if (FLARE_PNGS[url.pathname]) return send(200, 'image/png', FLARE_PNGS[url.pathname], { 'Cache-Control': 'public, max-age=86400' });
 
   // ---- Phone view (/m...). Its own sign-in: the TV key and ALLOWED_IPS don't apply. ----
   const lowerPath = url.pathname.toLowerCase();
