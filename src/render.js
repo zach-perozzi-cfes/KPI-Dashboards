@@ -77,9 +77,11 @@ tr.now{color:#ffdb05;font-weight:700}tr.now th{color:#ffdb05;font-weight:700}
 .wkn span:last-child{color:#fff;font-weight:700}
 .row{display:flex;align-items:baseline;justify-content:space-between;padding:12px 0;border-top:1px solid #3e3e3f}
 .row span:first-child{color:#eaeaea;font-size:16px}.row span:last-child{font-size:26px;font-weight:700}
-.qr{position:absolute;right:6px;bottom:6px;line-height:0}
-.qr svg{display:block}
-.hasqr>section:last-child>.card:last-child{padding-right:88px}
+/* Tucked inside the bottom-right card's corner, well clear of the screen edge (TVs can crop
+   the outer pixels). That card gets extra right padding so nothing sits under the code. */
+.qr{position:absolute;right:52px;bottom:44px;line-height:0}
+.qr svg{display:block;border-radius:3px}
+.hasqr>section:last-child>.card:last-child{padding-right:96px}
 `;
 
 function header(board, metrics, sources, opts = {}) {

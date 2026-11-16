@@ -12,6 +12,7 @@ function makeSession(secret, nowFn = () => new Date()) {
   const mac = (msg, len) => crypto.createHmac('sha256', secret).update(msg).digest('base64url').slice(0, len);
   const eq = (a, b) => { const A = Buffer.from(String(a)), B = Buffer.from(String(b)); return A.length === B.length && crypto.timingSafeEqual(A, B); };
   const today = () => nyDate(nowFn().toISOString());
+  const qrHex = () => crypto.createHmac('sha256', secret).update(`qr:${today()}`).digest('hex').slice(0, 16).toUpperCase();
 
   // Midnight Eastern at the end of `ds`, as a Date (handles EST/EDT).
   function endOfDay(ds) {
@@ -24,9 +25,10 @@ function makeSession(secret, nowFn = () => new Date()) {
   }
 
   return {
-    // The token in today's QR codes: 16 base64url characters (96 bits), short so the TV code stays small.
-    qrToken: () => mac(`qr:${today()}`, 16),
-    tokenOk: (t) => Boolean(t) && eq(t, mac(`qr:${today()}`, 16)),
+    // The token in today's QR codes: 16 upper-case hex characters (64 bits, new every day), so the
+    // whole link fits the QR alphanumeric mode and the TV code stays small.
+    qrToken: () => qrHex(),
+    tokenOk: (t) => Boolean(t) && eq(String(t).toUpperCase(), qrHex()),
     // Set-Cookie value for a session that ends at midnight Eastern tonight.
     cookie(secure) {
       const d = today();

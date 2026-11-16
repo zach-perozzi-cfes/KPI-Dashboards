@@ -45,17 +45,31 @@ function rsRemainder(data, div) {
 }
 const bit = (x, i) => ((x >>> i) & 1) !== 0;
 
+// Alphanumeric mode (digits, A-Z, space and $%*+-./:) packs 5.5 bits a character instead of 8,
+// so an upper-case URL makes a noticeably smaller code.
+const ALNUM = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:';
+
 function encode(text, level = 'M') {
   const e = ECL[level];
-  const data = [...Buffer.from(String(text), 'utf8')];
+  const str = String(text);
+  const alnum = [...str].every((c) => ALNUM.includes(c));
+  const data = alnum ? [...str].map((c) => ALNUM.indexOf(c)) : [...Buffer.from(str, 'utf8')];
+  const countBits = (ver) => (alnum ? (ver < 10 ? 9 : 11) : (ver < 10 ? 8 : 16));
+  const dataBits = alnum ? Math.floor(data.length / 2) * 11 + (data.length % 2) * 6 : data.length * 8;
   let ver = 1;
-  for (; ver <= 10; ver++) if (4 + (ver < 10 ? 8 : 16) + data.length * 8 <= dataCodewords(ver, e.ord) * 8) break;
+  for (; ver <= 10; ver++) if (4 + countBits(ver) + dataBits <= dataCodewords(ver, e.ord) * 8) break;
   if (ver > 10) throw new Error('QR text too long');
   const cap = dataCodewords(ver, e.ord) * 8;
 
   const bb = [];
   const put = (v, n) => { for (let i = n - 1; i >= 0; i--) bb.push((v >>> i) & 1); };
-  put(4, 4); put(data.length, ver < 10 ? 8 : 16); for (const b of data) put(b, 8);
+  if (alnum) {
+    put(2, 4); put(data.length, countBits(ver));
+    for (let i = 0; i + 1 < data.length; i += 2) put(data[i] * 45 + data[i + 1], 11);
+    if (data.length % 2) put(data[data.length - 1], 6);
+  } else {
+    put(4, 4); put(data.length, countBits(ver)); for (const b of data) put(b, 8);
+  }
   put(0, Math.min(4, cap - bb.length)); put(0, (8 - (bb.length % 8)) % 8);
   for (let pad = 0xec; bb.length < cap; pad ^= 0xec ^ 0x11) put(pad, 8);
   const bytes = [];
@@ -177,15 +191,16 @@ function penalty(mod, size) {
   return p;
 }
 
-// Dark modules on a white square. `scale` = screen pixels per module (whole numbers keep it
-// crisp); `quiet` = white border in modules (4 is the standard, 2 still scans on a dark page).
-function qrSvg(text, { px = 0, scale = 0, quiet = 4, level = 'M', label = 'QR code' } = {}) {
+// Dark modules on a light square. `scale` = screen pixels per module (whole numbers keep it
+// crisp); `quiet` = light border in modules (4 is the standard, 2 still scans on a dark page).
+// `dark`/`light` keep enough contrast for phone cameras (dark modules on the lighter color).
+function qrSvg(text, { px = 0, scale = 0, quiet = 4, level = 'M', label = 'QR code', dark = '#000', light = '#fff' } = {}) {
   const m = encode(text, level);
   const n = m.length, q = quiet, w = n + q * 2;
   if (!px) px = w * (scale || 4);
   let d = '';
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (m[y][x]) d += `M${x + q} ${y + q}h1v1h-1z`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${w}" width="${px}" height="${px}" role="img" aria-label="${label}" shape-rendering="crispEdges"><rect width="${w}" height="${w}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${w}" width="${px}" height="${px}" role="img" aria-label="${label}" shape-rendering="crispEdges"><rect width="${w}" height="${w}" fill="${light}"/><path d="${d}" fill="${dark}"/></svg>`;
 }
 
 module.exports = { encode, qrSvg };

@@ -100,17 +100,18 @@ function baseUrl(req) {
   return `${proto}://${req.headers.host}`;
 }
 
-// Each board's QR opens the phone view on that board's screen: /m/i/<l|m|r><today's token>.
-// Kept short (error correction L) so the code is small; 2 screen pixels per module stays crisp.
+// Each board's QR opens the phone view on that board's screen: /M/I/<L|M|R><today's token>.
+// All upper case so the QR can use its compact alphanumeric mode (the host is case-insensitive
+// and /m/i/ links are matched case-insensitively), error correction L, 2 screen pixels per module.
 const QR_SCREEN = { l: 'left', m: 'middle', r: 'right' };
-const signInUrl = (req, board) => `${baseUrl(req)}/m/i/${board[0]}${session.qrToken()}`;
+const signInUrl = (req, board) => `${baseUrl(req)}/M/I/${board[0]}${session.qrToken()}`.toUpperCase();
 const qrCache = new Map(); // url -> svg; the url changes at midnight
 function boardQr(req, board) {
   if (!session) return '';
   const url = signInUrl(req, board);
   if (!qrCache.has(url)) {
     if (qrCache.size > 30) qrCache.clear();
-    qrCache.set(url, qrSvg(url, { level: 'L', scale: 2, quiet: 2, label: 'Scan to open this screen on your phone' }));
+    qrCache.set(url, qrSvg(url, { level: 'L', scale: 2, quiet: 2, dark: '#262627', light: '#71a62b', label: 'Scan to open this screen on your phone' }));
   }
   return qrCache.get(url);
 }
@@ -132,7 +133,8 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/favicon.ico') return send(204, 'text/plain', '');
 
   // ---- Phone view (/m...). Its own sign-in: the TV key and ALLOWED_IPS don't apply. ----
-  if (url.pathname === '/m' || url.pathname.startsWith('/m/')) return mobile(req, res, url, send);
+  const lowerPath = url.pathname.toLowerCase();
+  if (lowerPath === '/m' || lowerPath.startsWith('/m/i/') || url.pathname.startsWith('/m/')) return mobile(req, res, url, send);
 
   if (!authorized(req, url)) {
     const extra = DASH_USER ? { 'WWW-Authenticate': 'Basic realm="CFES monitors"' } : {};
@@ -168,8 +170,8 @@ function mobile(req, res, url, send) {
   }
   if (!session) return send(503, 'text/plain', 'Phone view is not set up (MOBILE_SECRET)');
   // Scanned a board's QR: sign in (or refresh the sign-in) and open that board's screen.
-  if (p.startsWith('/m/i/')) {
-    const code = p.slice(5), screen = QR_SCREEN[code[0]];
+  if (p.toLowerCase().startsWith('/m/i/')) {
+    const code = p.slice(5), screen = QR_SCREEN[code[0].toLowerCase()];
     if (!screen || !session.tokenOk(code.slice(1))) return send(403, html, renderSignIn('That QR code has expired. Scan the code on an office monitor again.'));
     const secure = baseUrl(req).startsWith('https:');
     return send(303, 'text/plain', 'Signed in', { Location: `/m#${screen}`, 'Set-Cookie': session.cookie(secure) });
