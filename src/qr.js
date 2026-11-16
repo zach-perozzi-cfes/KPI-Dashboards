@@ -193,7 +193,8 @@ function penalty(mod, size) {
 
 // Dark modules on a light square. `scale` = screen pixels per module (whole numbers keep it
 // crisp); `quiet` = light border in modules (4 is the standard, 2 still scans on a dark page).
-// `dark`/`light` keep enough contrast for phone cameras (dark modules on the lighter color).
+// `dark` is the module color and `light` the background; keep at least ~3:1 contrast between them.
+// A lighter module color on a darker background makes an inverted code, which most phone cameras read.
 function qrSvg(text, { px = 0, scale = 0, quiet = 4, level = 'M', label = 'QR code', dark = '#000', light = '#fff' } = {}) {
   const m = encode(text, level);
   const n = m.length, q = quiet, w = n + q * 2;

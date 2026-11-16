@@ -80,7 +80,7 @@ tr.now{color:#ffdb05;font-weight:700}tr.now th{color:#ffdb05;font-weight:700}
 /* Tucked inside the bottom-right card's corner, well clear of the screen edge (TVs can crop
    the outer pixels). That card gets extra right padding so nothing sits under the code. */
 .qr{position:absolute;right:52px;bottom:44px;line-height:0}
-.qr svg{display:block;border-radius:3px}
+.qr svg{display:block}
 .hasqr>section:last-child>.card:last-child{padding-right:96px}
 `;
 
