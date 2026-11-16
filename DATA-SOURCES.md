@@ -26,7 +26,7 @@ This file traces every number and chart on the three office monitor boards back 
 | Source | Zoho app / module | Query | Fields used |
 | --- | --- | --- | --- |
 | `leads` | CRM · Leads | `Created_Time >=` 22 days before this Monday | `Created_Time`, `Lead_Source` (blank becomes "None") |
-| `calls` | CRM · Calls | `Call_Start_Time >=` 22 days before this Monday | `Call_Start_Time`, `Call_Type` |
+| `calls` | CRM · Calls | `Call_Start_Time >=` 22 days before this Monday | `Call_Start_Time`, `Call_Type`, `Subject` (used to keep only the inside sales reps' calls) |
 | `meetings` | CRM · Events (Meetings) | `Start_DateTime` between 22 days before this Monday and the Sunday after next | `Start_DateTime`, `Owner` (name and id) |
 | `apptSat` | CRM · Deals | `Appointment_Date` between the 1st and the last day of last month | `Appointment_Date`, `Lead_Source` (blank becomes "None"), `Scheduled_Appointment_Quality` |
 | `openDeals` | CRM · Deals | `Stage not in` Closed Won, Closed Lost, Closed Deferred, Closed Disqualified, Closed Hold, Appointment Cancelled. No date filter: every open deal. | `Stage`, `Amount` (blank = 0), `Layout` |
@@ -36,6 +36,12 @@ This file traces every number and chart on the three office monitor boards back 
 | `tasksDesign` | Projects · Tasks | name contains "Design", status is any closed status, `last_updated_time >=` 22 days before this Monday | `name`, `completed_on` |
 | `tasksPermit` | Projects · Tasks | the same, name contains "Permit" | `name`, `completed_on` |
 | `tasksInstall` | Projects · Tasks | the same, name contains "Install" | `name`, `completed_on` |
+
+### Fields used only by the phone view
+
+Each query above also pulls the record's `id` and a name, so the phone view (`/m`) can list the records behind each number: Leads `First_Name`, `Last_Name`, `Owner`; Calls `Call_Duration`; Events `Event_Title`; Deals `Deal_Name`, `Owner` (plus `Stage` for new deals and `Created_Time` for open deals, used for the age breakdown); Projects `name`; Tasks the task's project and owners. The boards themselves still show counts only.
+
+Every phone drill-down list is filtered with the same rule helpers in `src/metrics.js` as the number it opens from, so the list's count (and amount total) matches the board.
 
 ### Two rules used on several boards
 
@@ -53,8 +59,14 @@ Sources: `leads`, `calls`, `meetings`, `apptSat` (Zoho CRM).
 - **Arrow:** compared with last week's count.
 - **4-wk avg:** the average of the last 4 weekly counts, this week included.
 
+### Which calls count (all call numbers on this board)
+- Only calls on the lines of **Nicole Brugman, Quintin Driskell and Michael Broadhurst** (`CALL_REPS` in `src/metrics.js`).
+- The phone integration logs every call under one CRM user, so the call's `Owner` can't tell reps apart. Instead the rep is read from the line name in `Subject`: outbound calls look like "Call Nicole Brugman +1910… → +1…", and inbound calls look like "Call +1… → Nicole Brugman +1910…". A call counts when its Subject contains one of the three names, in any case.
+- Calls on shared lines (Service, Sales, Interconnections, EV Solutions) and other people's lines are left out.
+- As of Nov 13, 2026, no call in CRM has Quintin Driskell's name in the Subject, so his calls don't reach the board yet.
+
 ### Calls logged (tile)
-- **Big number:** Calls with `Call_Start_Time` in this week (Mon–Sun).
+- **Big number:** the reps' calls with `Call_Start_Time` in this week (Mon–Sun).
 - **"X out / Y in":** a call counts as **out** when `Call_Type` contains "out" (Outbound). **Everything else counts as "in"**, which means Missed calls are counted as inbound.
 
 ### Meetings this week (tile)
@@ -65,7 +77,7 @@ Sources: `leads`, `calls`, `meetings`, `apptSat` (Zoho CRM).
 - Events with `Start_DateTime` on next Monday through Friday. Every owner is included.
 
 ### Calls per day, this week (bar chart)
-- One bar per weekday, Monday through Friday, built from Calls by `Call_Start_Time`. Weekend calls are not shown here, but they do count in the Calls tile.
+- One bar per weekday, Monday through Friday, built from the reps' calls by `Call_Start_Time`. Weekend calls are not shown here, but they do count in the Calls tile.
 - **Green:** outbound calls (`Call_Type` contains "out").
 - **Yellow:** everything else, which includes Missed calls.
 

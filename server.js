@@ -10,6 +10,10 @@ const { loadAll } = require('./src/zoho');
 const { computeAll, windowFor, nyDate } = require('./src/metrics');
 const { BOARDS, renderPage, renderBoard } = require('./src/render');
 const { SLOTS, nowHM, slotLabel } = require('./src/schedule');
+const { buildDrill } = require('./src/drill');
+const { renderMobile, renderDrill, renderSignIn } = require('./src/mobile');
+const { makeSession } = require('./src/session');
+const { qrSvg } = require('./src/qr');
 
 const PORT = Number(process.env.PORT || 10000);
 const POLL_MS = Math.max(60, Number(process.env.POLL_SECONDS || 300)) * 1000;
@@ -19,6 +23,12 @@ const DASH_PASS = process.env.DASH_PASS || '';
 const ALLOWED_IPS = (process.env.ALLOWED_IPS || '').split(',').map((s) => s.trim()).filter(Boolean);
 const FIXTURE = process.env.DEMO_FIXTURE || ''; // local testing only
 const LOGO = fs.readFileSync(path.join(__dirname, 'public', 'logo.png'));
+// Phone view: signing in = scanning the QR code on a TV board; the session ends at midnight Eastern.
+// In fixture mode a throwaway secret is made up so it works locally.
+const MOBILE_SECRET = process.env.MOBILE_SECRET || (FIXTURE ? crypto.randomBytes(32).toString('hex') : '');
+const PUBLIC_URL = (process.env.PUBLIC_URL || '').replace(/\/+$/, '');
+const nowFn = () => (FIXTURE && process.env.DEMO_NOW ? new Date(process.env.DEMO_NOW) : new Date());
+const session = MOBILE_SECRET ? makeSession(MOBILE_SECRET, nowFn) : null;
 
 let sources = {};
 let metrics = null;
@@ -84,6 +94,27 @@ function authorized(req, url) {
   return false;
 }
 
+function baseUrl(req) {
+  if (PUBLIC_URL) return PUBLIC_URL;
+  const proto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() || 'http';
+  return `${proto}://${req.headers.host}`;
+}
+
+// Each board's QR opens the phone view on that board's screen: /m/i/<l|m|r><today's token>.
+// Kept short (error correction L) so the code is small; 2 screen pixels per module stays crisp.
+const QR_SCREEN = { l: 'left', m: 'middle', r: 'right' };
+const signInUrl = (req, board) => `${baseUrl(req)}/m/i/${board[0]}${session.qrToken()}`;
+const qrCache = new Map(); // url -> svg; the url changes at midnight
+function boardQr(req, board) {
+  if (!session) return '';
+  const url = signInUrl(req, board);
+  if (!qrCache.has(url)) {
+    if (qrCache.size > 30) qrCache.clear();
+    qrCache.set(url, qrSvg(url, { level: 'L', scale: 2, quiet: 2, label: 'Scan to open this screen on your phone' }));
+  }
+  return qrCache.get(url);
+}
+
 const BASE_HEADERS = {
   'Cache-Control': 'no-store',
   'X-Content-Type-Options': 'nosniff',
@@ -100,6 +131,9 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/logo.png') return send(200, 'image/png', LOGO, { 'Cache-Control': 'public, max-age=86400' });
   if (url.pathname === '/favicon.ico') return send(204, 'text/plain', '');
 
+  // ---- Phone view (/m...). Its own sign-in: the TV key and ALLOWED_IPS don't apply. ----
+  if (url.pathname === '/m' || url.pathname.startsWith('/m/')) return mobile(req, res, url, send);
+
   if (!authorized(req, url)) {
     const extra = DASH_USER ? { 'WWW-Authenticate': 'Basic realm="CFES monitors"' } : {};
     return send(401, 'text/plain', 'Unauthorized', extra);
@@ -107,8 +141,9 @@ const server = http.createServer((req, res) => {
 
   const board = url.pathname.replace(/^\/+|\/+$/g, '') || 'index';
   if (BOARDS[board]) {
-    if (url.searchParams.get('fragment') === '1') return send(200, 'text/html; charset=utf-8', renderBoard(board, metrics, sources));
-    return send(200, 'text/html; charset=utf-8', renderPage(board, metrics, sources, POLL_MS));
+    const opts = { qr: boardQr(req, board) };
+    if (url.searchParams.get('fragment') === '1') return send(200, 'text/html; charset=utf-8', renderBoard(board, metrics, sources, opts));
+    return send(200, 'text/html; charset=utf-8', renderPage(board, metrics, sources, POLL_MS, opts));
   }
   if (board === 'status') {
     const status = Object.fromEntries(Object.entries(sources).map(([k, v]) => [k, { fetchedAt: v.fetchedAt, rows: v.data ? v.data.length : null, error: v.error }]));
@@ -120,6 +155,39 @@ const server = http.createServer((req, res) => {
   }
   return send(404, 'text/plain', 'Not found');
 });
+
+function mobile(req, res, url, send) {
+  const html = 'text/html; charset=utf-8';
+  const p = url.pathname.replace(/\/+$/, '') || '/m';
+  // Printable copy of today's code, for the TV-key holder only.
+  if (p === '/m/qr') {
+    if (!authorized(req, url)) return send(401, 'text/plain', 'Unauthorized', DASH_USER ? { 'WWW-Authenticate': 'Basic realm="CFES monitors"' } : {});
+    if (!session) return send(503, 'text/plain', 'Phone view is not set up (MOBILE_SECRET)');
+    const codes = Object.keys(BOARDS).map((b) => `<figure style="display:inline-block;margin:16px">${qrSvg(signInUrl(req, b), { px: 240 })}<figcaption>${BOARDS[b].title}</figcaption></figure>`).join('');
+    return send(200, html, `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CFES phone view QR</title><body style="font-family:Verdana;text-align:center;padding:40px"><h1>CFES phone view</h1>${codes}<p>Each code opens that screen. Good until midnight tonight (Eastern); a new set is made every day.</p></body>`);
+  }
+  if (!session) return send(503, 'text/plain', 'Phone view is not set up (MOBILE_SECRET)');
+  // Scanned a board's QR: sign in (or refresh the sign-in) and open that board's screen.
+  if (p.startsWith('/m/i/')) {
+    const code = p.slice(5), screen = QR_SCREEN[code[0]];
+    if (!screen || !session.tokenOk(code.slice(1))) return send(403, html, renderSignIn('That QR code has expired. Scan the code on an office monitor again.'));
+    const secure = baseUrl(req).startsWith('https:');
+    return send(303, 'text/plain', 'Signed in', { Location: `/m#${screen}`, 'Set-Cookie': session.cookie(secure) });
+  }
+  if (!session.signedIn(req)) {
+    if (p === '/m' && url.searchParams.get('fragment') !== '1') return send(200, html, renderSignIn());
+    return send(401, 'text/plain', 'Signed out');
+  }
+  if (p === '/m') {
+    const fragment = url.searchParams.get('fragment') === '1';
+    return send(200, html, renderMobile(metrics, sources, POLL_MS, { fragment }));
+  }
+  if (p === '/m/d') {
+    const id = String(url.searchParams.get('id') || '').slice(0, 300);
+    return send(200, html, renderDrill(metrics ? buildDrill(id, sources, metrics.win) : null));
+  }
+  return send(404, 'text/plain', 'Not found');
+}
 
 // Zoho is pulled once at startup, then only at the scheduled times (default 7:00, 12:00, 16:00 ET).
 // The boards poll this server's cache, which never calls Zoho.

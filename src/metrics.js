@@ -64,10 +64,27 @@ const GRID_EXCLUDE = new Set([
   '4669422000210151001', // Quintin Driskell
 ]);
 
+// Inside sales reps whose calls count. The phone integration logs every call under one CRM
+// user, so the rep is read from the line name in the Subject, e.g.
+// "Call Nicole Brugman +1910... → +1..." (outbound) or "Call +1... → Nicole Brugman +1910..." (inbound).
+const CALL_REPS = ['Nicole Brugman', 'Quintin Driskell', 'Michael Broadhurst'];
+const isRepCall = (subject) => CALL_REPS.some((n) => (subject || '').toLowerCase().includes(n.toLowerCase()));
+// Which rep's line a call was on (for the phone drill-down).
+const callRep = (subject) => CALL_REPS.find((n) => (subject || '').toLowerCase().includes(n.toLowerCase())) || null;
+const isOut = (type) => /out/i.test(type || '');
+// "Sat": Appointment Quality filled in and not "D (Not Good, Questionable)".
+const isSat = (q) => Boolean(q) && !/^D /.test(q);
+// Service deals: Pipeline contains "CFSS".
+const isService = (pipeline) => /cfss/i.test(pipeline || '');
+const isWeekend = (ds) => dow(ds) === 0 || dow(ds) === 6;
+// Meetings-by-rep grid: Mon-Fri of this week, or next week on Sat/Sun.
+const gridWeekStart = (win) => (isWeekend(win.today) ? win.nextWs : win.ws);
+const repName = (r) => REP_NAMES[r.ownerId] || r.owner || 'Unassigned';
+
 function sales(src, win) {
   if (!src.leads.data || !src.calls.data || !src.meetings.data) return null;
   const leadDates = src.leads.data.map((r) => ({ d: nyDate(r.t), src: r.src }));
-  const calls = src.calls.data.map((r) => ({ d: nyDate(r.t), out: /out/i.test(r.type) }));
+  const calls = src.calls.data.filter((r) => isRepCall(r.subject)).map((r) => ({ d: nyDate(r.t), out: isOut(r.type) }));
   const mtgDates = src.meetings.data.map((r) => nyDate(r.t));
 
   const leadsWk = perWeek(leadDates.map((x) => x.d), win.weeks);
@@ -87,11 +104,11 @@ function sales(src, win) {
 
   // This week's meetings (Mon-Fri), split by meeting owner (the rep running it).
   // On Saturday and Sunday the week is over, so the grid shows the week ahead.
-  const weekend = dow(win.today) === 0 || dow(win.today) === 6;
-  const gridWs = weekend ? win.nextWs : win.ws;
+  const weekend = isWeekend(win.today);
+  const gridWs = gridWeekStart(win);
   const gridMtgs = src.meetings.data
     .filter((r) => !GRID_EXCLUDE.has(r.ownerId))
-    .map((r) => ({ d: nyDate(r.t), owner: REP_NAMES[r.ownerId] || r.owner || 'Unassigned' }))
+    .map((r) => ({ d: nyDate(r.t), owner: repName(r) }))
     .filter((x) => inRange(x.d, gridWs, addDays(gridWs, 5)));
   const repTotals = new Map();
   for (const m of gridMtgs) repTotals.set(m.owner, (repTotals.get(m.owner) || 0) + 1);
@@ -132,7 +149,7 @@ function sales(src, win) {
     for (const r of src.apptSat.data) {
       const d = nyDate(r.t);
       if (!inRange(d, win.prevMonthStart, win.monthStart)) continue;
-      if (!r.q || /^D /.test(r.q)) continue;
+      if (!isSat(r.q)) continue;
       satCounts.set(r.src, (satCounts.get(r.src) || 0) + 1);
     }
     const satSorted = [...satCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
@@ -166,16 +183,23 @@ const LAYOUT_SHORT = {
   'Energy Services': 'Energy',
   'EV Charging Deal': 'EV',
 };
+const stageRank = (s) => { const i = STAGE_ORDER.indexOf(s); return i < 0 ? 99 : i; };
 const LATE = new Set(['Proposal Review-60', 'Proposal Review-80', 'Negotiation']);
 const EARLY = new Set(['Proposal Review-20', 'Proposal Review-40']);
+
+// Same days of last month as month-to-date (e.g. Oct 1-12 on Nov 12), capped at last month's end.
+function newDealWindow(win) {
+  const day = Number(win.today.slice(8, 10));
+  const prevEnd = addDays(win.monthStart, -1);
+  const prevSameEnd = addDays(win.prevMonthStart, day - 1) > prevEnd ? prevEnd : addDays(win.prevMonthStart, day - 1);
+  return { day, prevEnd, prevSameEnd };
+}
 
 // New deals this month vs the same days of last month (by created date).
 function newDeals(src, win) {
   if (!src.newDeals || !src.newDeals.data) return null;
-  const rows = src.newDeals.data.map((d) => ({ d: nyDate(d.t), svc: /cfss/i.test(d.pipeline) }));
-  const day = Number(win.today.slice(8, 10));
-  const prevEnd = addDays(win.monthStart, -1);
-  const prevSameEnd = addDays(win.prevMonthStart, day - 1) > prevEnd ? prevEnd : addDays(win.prevMonthStart, day - 1);
+  const rows = src.newDeals.data.map((d) => ({ d: nyDate(d.t), svc: isService(d.pipeline) }));
+  const { day, prevEnd, prevSameEnd } = newDealWindow(win);
   const cur = rows.filter((r) => r.d && r.d >= win.monthStart && r.d <= win.today);
   const prevSame = rows.filter((r) => r.d && r.d >= win.prevMonthStart && r.d <= prevSameEnd).length;
   const prevTotal = rows.filter((r) => r.d && r.d >= win.prevMonthStart && r.d <= prevEnd).length;
@@ -191,8 +215,7 @@ function pipeline(src, win) {
     byStage.set(d.stage, s);
   }
   const stages = [...byStage.values()].sort((a, b) => {
-    const ia = STAGE_ORDER.indexOf(a.stage), ib = STAGE_ORDER.indexOf(b.stage);
-    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.stage.localeCompare(b.stage);
+    return stageRank(a.stage) - stageRank(b.stage) || a.stage.localeCompare(b.stage);
   }).map((s) => ({ ...s, kind: LATE.has(s.stage) ? 'late' : EARLY.has(s.stage) ? 'early' : s.stage === 'Nurture' ? 'nurture' : 'other' }));
 
   // Open deals by stage x layout (CRM layouts = departments), departments ordered by size.
@@ -221,7 +244,7 @@ function pipeline(src, win) {
     const m = Number(d.date.slice(5, 7));
     if (m < 1 || m > curMonth) continue;
     const row = months[m - 1];
-    if (/cfss/i.test(d.pipeline)) { row.svc += d.amount; row.nSvc++; } else { row.std += d.amount; row.nStd++; }
+    if (isService(d.pipeline)) { row.svc += d.amount; row.nSvc++; } else { row.std += d.amount; row.nStd++; }
   }
   const sum = (arr, f) => arr.reduce((s, x) => s + f(x), 0);
   const cur = months[curMonth - 1];
@@ -293,4 +316,8 @@ function computeAll(sources, now = new Date()) {
   return { win, sales: sales(sources, win), pipeline: pipeline(sources, win), ops: ops(sources, win) };
 }
 
-module.exports = { computeAll, windowFor, addDays, nyDate };
+module.exports = {
+  computeAll, windowFor, addDays, nyDate, dow, inRange, weekIndex,
+  REP_NAMES, GRID_EXCLUDE, CALL_REPS, isRepCall, callRep, isOut, isSat, isService, gridWeekStart, repName,
+  STAGE_ORDER, stageRank, LAYOUT_SHORT, newDealWindow, TASK_KINDS, GROUP_LABELS,
+};

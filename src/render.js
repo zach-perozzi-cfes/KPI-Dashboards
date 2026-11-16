@@ -10,33 +10,7 @@ const BOARDS = {
   right: { title: 'Operations', sources: ['projects', 'tasksDesign', 'tasksPermit', 'tasksInstall'], system: 'Zoho Projects' },
 };
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const sum = (a) => a.reduce((s, x) => s + x, 0);
-const md = (ds) => `${MONTHS[Number(ds.slice(5, 7)) - 1]} ${Number(ds.slice(8, 10))}`;
-const dnum = (ds) => Number(ds.slice(8, 10));
-function weekLabel(ws) {
-  const fri = addDays(ws, 4);
-  return ws.slice(5, 7) === fri.slice(5, 7) ? `${md(ws)} – ${dnum(fri)}, ${fri.slice(0, 4)}` : `${md(ws)} – ${md(fri)}, ${fri.slice(0, 4)}`;
-}
-function money(v) {
-  if (v >= 1e6) return `$${(v / 1e6).toFixed(2)}M`;
-  if (v >= 1e5) return `$${Math.round(v / 1e3)}K`;
-  if (v >= 1e3) return `$${(v / 1e3).toFixed(1)}K`;
-  return `$${Math.round(v)}`;
-}
-function delta(cur, prev, label = 'vs last week') {
-  if (prev == null) return '';
-  const d = cur - prev;
-  if (d === 0) return `<span class="flat">● no change</span> ${label} (${prev})`;
-  return `<span class="${d > 0 ? 'up' : 'dn'}">${d > 0 ? '▲' : '▼'} ${Math.abs(d)}</span> ${label} (${prev})`;
-}
-const avg = (a) => (a.length ? sum(a) / a.length : 0);
-const fmtAvg = (v) => (Math.round(v * 10) / 10).toString();
-const timeFmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' });
-const dayTimeFmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: 'numeric', minute: '2-digit' });
+const { MONTHS, DAYS, esc, sum, md, dnum, weekLabel, money, delta, avg, fmtAvg, dayTimeFmt } = require('./format');
 
 const CSS = `
 *{box-sizing:border-box}
@@ -103,9 +77,12 @@ tr.now{color:#ffdb05;font-weight:700}tr.now th{color:#ffdb05;font-weight:700}
 .wkn span:last-child{color:#fff;font-weight:700}
 .row{display:flex;align-items:baseline;justify-content:space-between;padding:12px 0;border-top:1px solid #3e3e3f}
 .row span:first-child{color:#eaeaea;font-size:16px}.row span:last-child{font-size:26px;font-weight:700}
+.qr{position:absolute;right:6px;bottom:6px;line-height:0}
+.qr svg{display:block}
+.hasqr>section:last-child>.card:last-child{padding-right:88px}
 `;
 
-function header(board, metrics, sources) {
+function header(board, metrics, sources, opts = {}) {
   const b = BOARDS[board];
   const fetched = b.sources.map((k) => sources[k] && sources[k].fetchedAt).filter(Boolean).sort()[0];
   const failing = b.sources.filter((k) => sources[k] && sources[k].error);
@@ -118,6 +95,12 @@ function header(board, metrics, sources) {
   const right = board === 'middle' ? `${metrics.win.today.slice(0, 4)} year to date` : `Week of ${weekLabel(metrics.win.ws)}`;
   return `<header><h1>${esc(b.title)}</h1>
 <div class="hr"><p class="wk">${esc(right)}</p><p class="sub">${status}</p></div></header>`;
+}
+
+// Today's phone sign-in code for this screen, tiny in the bottom-right corner (see src/session.js).
+// Changes at midnight; the page's poll picks it up.
+function qrBlock(svg) {
+  return svg ? `<div class="qr">${svg}</div>` : '';
 }
 
 function waiting(msg = 'Waiting for Zoho data…') { return `<div class="card empty">${esc(msg)}</div>`; }
@@ -313,12 +296,14 @@ ${o.tiles.map((t) => `<div class="row"><span>${esc(t.label)}</span><span>${t.wk 
   return `${tiles}<section style="display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr) minmax(0,0.8fr);gap:24px;flex-grow:1;min-height:0">${line}${types}${totals}</section>`;
 }
 
-function renderBoard(board, metrics, sources) {
-  if (!metrics) return `<header><h1>${esc(BOARDS[board].title)}</h1></header><main>${waiting('Connecting to Zoho…')}</main>`;
+// opts.qr: inline SVG of today's phone sign-in code for this board, shown bottom-right.
+function renderBoard(board, metrics, sources, opts = {}) {
+  if (!metrics) return `<header><h1>${esc(BOARDS[board].title)}</h1></header><main>${waiting('Connecting to Zoho…')}</main>${qrBlock(opts.qr)}`;
   const body = board === 'left' ? salesBoard(metrics.sales, metrics.win)
     : board === 'middle' ? pipelineBoard(metrics.pipeline, metrics.win)
       : opsBoard(metrics.ops, metrics.win);
-  return `${header(board, metrics, sources)}<main>${body}</main>`;
+  // With a QR, the bottom-right card gets extra right padding so nothing sits under the code.
+  return `${header(board, metrics, sources, opts)}<main${opts.qr ? ' class="hasqr"' : ''}>${body}</main>${qrBlock(opts.qr)}`;
 }
 
 const CLIENT_JS = `
@@ -337,10 +322,10 @@ const CLIENT_JS = `
   setInterval(poll,POLL_MS);
 })();`;
 
-function renderPage(board, metrics, sources, pollMs) {
+function renderPage(board, metrics, sources, pollMs, opts = {}) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><title>CFES · ${esc(BOARDS[board].title)}</title><style>${CSS}</style></head>
-<body><div id="stage">${renderBoard(board, metrics, sources)}</div><script>${CLIENT_JS.replace('POLL_MS', String(pollMs))}</script></body></html>`;
+<body><div id="stage">${renderBoard(board, metrics, sources, opts)}</div><script>${CLIENT_JS.replace('POLL_MS', String(pollMs))}</script></body></html>`;
 }
 
 module.exports = { BOARDS, renderPage, renderBoard };

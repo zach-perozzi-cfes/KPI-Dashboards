@@ -10,6 +10,8 @@ Three live KPI boards for the office TVs (Yodeck players), fed directly by Zoho 
 
 Each board is a fixed 1920×1080 layout that scales to fit any screen.
 
+**Phone view (`/m`):** the same three boards as swipeable screens (swipe left/right or tap a tab; each screen scrolls up and down). Tap any number, bar, row or grid cell to see the records behind it: name, owner, date, amount, and a link to the record in Zoho. Each list uses the same rule as the number on the board, so it always adds up. See [Phone view](#phone-view).
+
 **Data schedule:** the server pulls Zoho once when it starts, then only at the times in `REFRESH_TIMES` (Eastern time, default `07:00,12:00,16:00`), so three pulls a day. Each board header shows when it was last updated and when the next pull is due. The pages check this server's cached copy every `POLL_SECONDS` (default 300) and swap in new numbers without a full reload, because Yodeck does not reload a lone web page on its own. Those checks never call Zoho.
 
 No dependencies: Node 20+, `node server.js`.
@@ -23,6 +25,7 @@ No dependencies: Node 20+, `node server.js`.
 - **Access options:** `?key=<DASH_KEY>` in the Yodeck URL, or HTTP Basic Auth (`https://user:pass@host/left`). Comparisons are constant-time.
 - **Network:** restrict the service to the office's public IP with Render's inbound IP rules (Settings → Networking), or set `ALLOWED_IPS` (comma-separated).
 - Responses send `no-store`, `noindex`, `nosniff` and `no-referrer` (so the key never leaks in a Referer header).
+- **Phone view sign-in:** see [Phone view](#phone-view). The TV key can't open `/m`, and `/m` doesn't use the TV key or `ALLOWED_IPS`.
 - One failed Zoho source never blanks the others: it keeps its last good data and the board shows "refresh delayed". The same flag appears if data is older than the longest gap between scheduled pulls plus an hour.
 
 ## Environment variables
@@ -37,10 +40,24 @@ No dependencies: Node 20+, `node server.js`.
 | `REFRESH_TIMES` | no | Zoho pull times, Eastern, comma-separated `HH:MM`. Default `07:00,12:00,16:00` |
 | `POLL_SECONDS` | no | How often the page checks the server's cache. Default 300 (no Zoho calls) |
 | `ZOHO_ACCOUNTS_URL`, `ZOHO_CRM_API`, `ZOHO_PROJECTS_API` | no | Defaults to the US (.com) data center |
+| `MOBILE_SECRET` | for `/m` | Long random string that signs the daily QR code and phone sessions. Without it the phone view is off and no QR shows on the boards. Changing it signs everyone out. |
+| `PUBLIC_URL` | no | e.g. `https://<service>.onrender.com`. The address the QR code points to. Defaults to the address the TV used to load the board. |
+| `ZOHO_CRM_ORG_URL` | no | e.g. `https://crm.zoho.com/crm/org123456789`. Turns phone records into links to the CRM record. |
+| `ZOHO_PROJECTS_URL` | no | e.g. `https://projects.zoho.com/portal/<portal name>`. Turns project and task records into links to the project. |
 
 \* At least one of `DASH_KEY` or the `DASH_USER`/`DASH_PASS` pair.
 
 `/status?key=…` shows each source's last fetch time, row count and any error.
+
+## Phone view
+
+1. **Sign in:** scan the small QR code in the bottom-right corner of any office monitor. Each monitor has its own code, and it opens the phone view on that monitor's screen (Inside Sales, Pipeline or Operations); swipe from there to the others. The phone stays signed in until **midnight Eastern**, then shows "Sign in with the office QR code" until a code is scanned again.
+2. **How it works:** the QR holds a short link (`/m/i/<l|m|r><token>`) with a token made from `MOBILE_SECRET` and today's date. The letter picks the screen. The token changes every day on its own, so yesterday's code (or a photo of it) stops working at midnight. Scanning sets a cookie that's only accepted on the day it was made. Nothing is stored on the server, so a restart doesn't sign anyone out.
+3. **Off-site:** after scanning, the phone works anywhere. `ALLOWED_IPS` doesn't apply to `/m`, but Render's own inbound IP rules (Settings → Networking) apply to everything, so if those are on, phones only work on office Wi-Fi.
+4. **Size:** the code is drawn at 2 screen pixels per module (74 px on a 1080p screen, about 2.4 in square on a 70" TV), so scan it from close up. The bottom-right card on each board gets extra right padding so nothing sits under it. A longer `PUBLIC_URL` makes the code a little bigger.
+5. **Printable codes:** `/m/qr?key=<DASH_KEY>` shows today's three codes large. They're only good until midnight.
+6. **Home screen:** use a browser bookmark, not "Add to Home Screen". On iPhone a home-screen app keeps its own cookies, so it can't see the sign-in from scanning.
+7. The phone view reads the same cached data as the boards and never calls Zoho.
 
 ## Yodeck setup
 
@@ -51,4 +68,4 @@ For each TV: **Add Media → Web Page**, URL `https://<service>.onrender.com/lef
 ```
 DEMO_FIXTURE=fixture.json DEMO_NOW=2026-11-08T22:00:00Z PORT=10777 node server.js
 ```
-Fixture files are git-ignored. Never commit real Zoho data.
+In fixture mode the phone view works without `MOBILE_SECRET` (a throwaway one is made up, and the QR on the boards signs you in). Fixture files are git-ignored. Never commit real Zoho data.

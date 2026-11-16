@@ -82,6 +82,10 @@ async function coqlAll(baseQuery, maxPages = 10) {
   return [...out.values()];
 }
 
+// Zoho Projects ids are bigger than JS numbers can hold, so prefer the string form.
+const idOf = (o) => (o && (o.id_string || (o.id != null ? String(o.id) : ''))) || '';
+const ownerName = (o) => (o && o.name) || '';
+
 function projFilter(criteria) {
   return JSON.stringify({ criteria, pattern: criteria.map((_, i) => i + 1).join(' AND ') });
 }
@@ -94,7 +98,10 @@ async function projectsCreatedSince(dateStr) {
     const j = await zfetch(`${PROJ}/portal/${PORTAL}/projects?${qs}`);
     const list = Array.isArray(j) ? j : (j && (j.projects || j.result || j.data)) || [];
     for (const p of list) {
-      out.push({ created: p.created_time || null, group: (p.project_group && p.project_group.name) || 'Ungrouped' });
+      out.push({
+        id: idOf(p), name: p.name || '',
+        created: p.created_time || null, group: (p.project_group && p.project_group.name) || 'Ungrouped',
+      });
     }
     const more = j && j.page_info ? j.page_info.has_next_page : list.length === 100;
     if (!more) break;
@@ -113,7 +120,15 @@ async function closedTasksSince(nameContains, dateStr) {
     const qs = new URLSearchParams({ filter, per_page: '200', page: String(page) });
     const j = await zfetch(`${PROJ}/portal/${PORTAL}/tasks?${qs}`);
     const list = (j && j.tasks) || [];
-    for (const t of list) out.push({ name: t.name || '', completed: t.completed_on || null });
+    for (const t of list) {
+      const proj = t.project || {};
+      const owners = (t.owners_and_work && t.owners_and_work.owners) || t.owners || (t.details && t.details.owners) || [];
+      out.push({
+        id: idOf(t), name: t.name || '', completed: t.completed_on || null,
+        project: proj.name || t.project_name || '', projectId: idOf(proj),
+        owner: owners.map((o) => o.full_name || o.name).filter((n) => n && !/^unassigned/i.test(n)).join(', '),
+      });
+    }
     if (!(j && j.page_info && j.page_info.has_next_page)) break;
   }
   return out;
@@ -124,22 +139,23 @@ function sourceDefs(win) {
   const since = `${win.fetchFrom}T00:00:00-05:00`;
   const until = `${win.fetchTo}T23:59:59-05:00`;
   return {
-    leads: () => coqlAll(`select Created_Time, Lead_Source from Leads where Created_Time >= '${since}'`)
-      .then((rows) => rows.map((r) => ({ t: r.Created_Time, src: r.Lead_Source || 'None' }))),
+    // id, names and owner are only used by the phone drill-down (/m); the boards show counts.
+    leads: () => coqlAll(`select id, First_Name, Last_Name, Owner, Created_Time, Lead_Source from Leads where Created_Time >= '${since}'`)
+      .then((rows) => rows.map((r) => ({ id: r.id, t: r.Created_Time, src: r.Lead_Source || 'None', name: [r.First_Name, r.Last_Name].filter(Boolean).join(' '), owner: ownerName(r.Owner) }))),
     // Deals whose appointment was last month; metrics.js keeps the ones that sat.
-    apptSat: () => coqlAll(`select Appointment_Date, Lead_Source, Scheduled_Appointment_Quality from Deals where Appointment_Date between '${win.prevMonthStart}T00:00:00-05:00' and '${win.prevMonthEnd}T23:59:59-05:00'`)
-      .then((rows) => rows.map((r) => ({ t: r.Appointment_Date, src: r.Lead_Source || 'None', q: r.Scheduled_Appointment_Quality || '' }))),
-    calls: () => coqlAll(`select Call_Start_Time, Call_Type from Calls where Call_Start_Time >= '${since}'`)
-      .then((rows) => rows.map((r) => ({ t: r.Call_Start_Time, type: r.Call_Type || '' }))),
-    meetings: () => coqlAll(`select Start_DateTime, Owner from Events where Start_DateTime between '${since}' and '${until}'`)
-      .then((rows) => rows.map((r) => ({ t: r.Start_DateTime, owner: (r.Owner && r.Owner.name) || 'Unassigned', ownerId: (r.Owner && r.Owner.id) || null }))),
+    apptSat: () => coqlAll(`select id, Deal_Name, Owner, Appointment_Date, Lead_Source, Scheduled_Appointment_Quality from Deals where Appointment_Date between '${win.prevMonthStart}T00:00:00-05:00' and '${win.prevMonthEnd}T23:59:59-05:00'`)
+      .then((rows) => rows.map((r) => ({ id: r.id, t: r.Appointment_Date, src: r.Lead_Source || 'None', q: r.Scheduled_Appointment_Quality || '', name: r.Deal_Name || '', owner: ownerName(r.Owner) }))),
+    calls: () => coqlAll(`select id, Call_Start_Time, Call_Type, Call_Duration, Subject from Calls where Call_Start_Time >= '${since}'`)
+      .then((rows) => rows.map((r) => ({ id: r.id, t: r.Call_Start_Time, type: r.Call_Type || '', subject: r.Subject || '', dur: r.Call_Duration || '' }))),
+    meetings: () => coqlAll(`select id, Event_Title, Start_DateTime, Owner from Events where Start_DateTime between '${since}' and '${until}'`)
+      .then((rows) => rows.map((r) => ({ id: r.id, t: r.Start_DateTime, title: r.Event_Title || '', owner: (r.Owner && r.Owner.name) || 'Unassigned', ownerId: (r.Owner && r.Owner.id) || null }))),
     // Closed Deferred is treated like Closed Lost (not open, not won).
-    openDeals: () => coqlAll(`select Stage, Amount, Layout from Deals where Stage not in ('Closed Won', 'Closed Lost', 'Closed Deferred', 'Closed Disqualified', 'Closed Hold', 'Appointment Cancelled')`)
-      .then((rows) => rows.map((r) => ({ stage: r.Stage || 'Unknown', amount: Number(r.Amount) || 0, layout: (r.Layout && r.Layout.name) || 'No layout' }))),
-    newDeals: () => coqlAll(`select Created_Time, Pipeline from Deals where Created_Time >= '${win.prevMonthStart}T00:00:00-05:00'`)
-      .then((rows) => rows.map((r) => ({ t: r.Created_Time, pipeline: r.Pipeline || '' }))),
-    wonDeals: () => coqlAll(`select Closing_Date, Amount, Pipeline from Deals where Stage = 'Closed Won' and Closing_Date >= '${win.yearStart}'`)
-      .then((rows) => rows.map((r) => ({ date: r.Closing_Date, amount: Number(r.Amount) || 0, pipeline: r.Pipeline || '' }))),
+    openDeals: () => coqlAll(`select id, Deal_Name, Owner, Created_Time, Stage, Amount, Layout from Deals where Stage not in ('Closed Won', 'Closed Lost', 'Closed Deferred', 'Closed Disqualified', 'Closed Hold', 'Appointment Cancelled')`)
+      .then((rows) => rows.map((r) => ({ id: r.id, name: r.Deal_Name || '', owner: ownerName(r.Owner), created: r.Created_Time || null, stage: r.Stage || 'Unknown', amount: Number(r.Amount) || 0, layout: (r.Layout && r.Layout.name) || 'No layout' }))),
+    newDeals: () => coqlAll(`select id, Deal_Name, Owner, Stage, Created_Time, Pipeline from Deals where Created_Time >= '${win.prevMonthStart}T00:00:00-05:00'`)
+      .then((rows) => rows.map((r) => ({ id: r.id, name: r.Deal_Name || '', owner: ownerName(r.Owner), stage: r.Stage || '', t: r.Created_Time, pipeline: r.Pipeline || '' }))),
+    wonDeals: () => coqlAll(`select id, Deal_Name, Owner, Closing_Date, Amount, Pipeline from Deals where Stage = 'Closed Won' and Closing_Date >= '${win.yearStart}'`)
+      .then((rows) => rows.map((r) => ({ id: r.id, name: r.Deal_Name || '', owner: ownerName(r.Owner), date: r.Closing_Date, amount: Number(r.Amount) || 0, pipeline: r.Pipeline || '' }))),
     projects: () => projectsCreatedSince(win.fetchFrom),
     tasksDesign: () => closedTasksSince('Design', win.fetchFrom),
     tasksPermit: () => closedTasksSince('Permit', win.fetchFrom),
