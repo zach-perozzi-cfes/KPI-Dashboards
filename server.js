@@ -14,6 +14,7 @@ const { buildDrill } = require('./src/drill');
 const { renderMobile, renderDrill, renderSignIn } = require('./src/mobile');
 const { makeSession } = require('./src/session');
 const { qrSvg } = require('./src/qr');
+const flare = require('./src/flare');
 
 const PORT = Number(process.env.PORT || 10000);
 const POLL_MS = Math.max(60, Number(process.env.POLL_SECONDS || 300)) * 1000;
@@ -129,6 +130,7 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://local');
   const send = (code, type, body, extra = {}) => { res.writeHead(code, { ...BASE_HEADERS, 'Content-Type': type, ...extra }); res.end(body); };
 
+  if (req.method === 'POST' && url.pathname === '/m/flare') return postFlare(req, res, send);
   if (req.method !== 'GET' && req.method !== 'HEAD') return send(405, 'text/plain', 'Method not allowed');
   if (url.pathname === '/healthz') return send(200, 'text/plain', 'ok');
   if (url.pathname === '/logo.png') return send(200, 'image/png', LOGO, { 'Cache-Control': 'public, max-age=86400' });
@@ -145,7 +147,9 @@ const server = http.createServer((req, res) => {
 
   const board = url.pathname.replace(/^\/+|\/+$/g, '') || 'index';
   if (BOARDS[board]) {
-    const opts = { qr: boardQr(req, board) };
+    // The TV page checks for new phone flares every few seconds (JSON, never calls Zoho).
+    if (url.searchParams.has('flares')) return send(200, 'application/json', JSON.stringify(flare.since(board, Number(url.searchParams.get('flares')) || 0)));
+    const opts = { qr: boardQr(req, board), flareSince: session ? flare.latest() : null };
     if (url.searchParams.get('fragment') === '1') return send(200, 'text/html; charset=utf-8', renderBoard(board, metrics, sources, opts));
     return send(200, 'text/html; charset=utf-8', renderPage(board, metrics, sources, POLL_MS, opts));
   }
@@ -159,6 +163,24 @@ const server = http.createServer((req, res) => {
   }
   return send(404, 'text/plain', 'Not found');
 });
+
+// Phone sends a flare: {"board":"left","emoji":"🔥"}. Signed-in phones only; the session cookie is
+// SameSite=Lax, so another site can't post one on someone's behalf.
+function postFlare(req, res, send) {
+  const json = (code, obj) => send(code, 'application/json', JSON.stringify(obj));
+  if (!session || !session.signedIn(req)) return json(401, { error: 'Signed out' });
+  let body = '';
+  req.setEncoding('utf8');
+  req.on('data', (c) => { body += c; if (body.length > 512) req.destroy(); });
+  req.on('end', () => {
+    let msg;
+    try { msg = JSON.parse(body); } catch { return json(400, { error: 'Bad request' }); }
+    if (!msg || !BOARDS[msg.board]) return json(400, { error: 'Unknown screen' });
+    const err = flare.add(msg.board, String(msg.emoji || ''), clientIp(req));
+    if (err) return json(err === 'Unknown emoji' ? 400 : 429, { error: err });
+    return json(200, { ok: true });
+  });
+}
 
 function mobile(req, res, url, send) {
   const html = 'text/html; charset=utf-8';

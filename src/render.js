@@ -11,6 +11,7 @@ const BOARDS = {
 };
 
 const { MONTHS, DAYS, esc, sum, md, dnum, weekLabel, money, delta, avg, fmtAvg, dayTimeFmt } = require('./format');
+const flare = require('./flare');
 
 const CSS = `
 *{box-sizing:border-box}
@@ -324,10 +325,28 @@ const CLIENT_JS = `
   setInterval(poll,POLL_MS);
 })();`;
 
+// Phone flares: check every few seconds and float any new ones across this TV.
+// opts.flareSince = the newest flare id when the page was made (so old ones don't replay).
+const FLARE_JS = `
+(function(){
+  var since=FLARE_SINCE;
+  function check(){
+    var u=location.pathname+(location.search?location.search+'&':'?')+'flares='+since;
+    fetch(u,{cache:'no-store',credentials:'same-origin'}).then(function(r){return r.ok?r.json():null;}).then(function(j){
+      if(!j)return;
+      if(j.last<since)since=0; // server restarted
+      j.flares.forEach(function(f,i){setTimeout(function(){flareBurst(f.emoji);},i*900);});
+      since=Math.max(since,j.last);
+    }).catch(function(){});
+  }
+  setInterval(check,3000);
+})();`;
+
 function renderPage(board, metrics, sources, pollMs, opts = {}) {
+  const flares = opts.flareSince != null;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow"><title>CFES · ${esc(BOARDS[board].title)}</title><style>${CSS}</style></head>
-<body><div id="stage">${renderBoard(board, metrics, sources, opts)}</div><script>${CLIENT_JS.replace('POLL_MS', String(pollMs))}</script></body></html>`;
+<meta name="robots" content="noindex,nofollow"><title>CFES · ${esc(BOARDS[board].title)}</title>${flares ? flare.FONT_LINK : ''}<style>${CSS}${flares ? flare.CSS : ''}</style></head>
+<body><div id="stage">${renderBoard(board, metrics, sources, opts)}</div>${flares ? '<div id="flares" aria-hidden="true"></div>' : ''}<script>${CLIENT_JS.replace('POLL_MS', String(pollMs))}${flares ? flare.BURST_JS + FLARE_JS.replace('FLARE_SINCE', String(opts.flareSince)) : ''}</script></body></html>`;
 }
 
 module.exports = { BOARDS, renderPage, renderBoard };

@@ -21,7 +21,7 @@ No dependencies: Node 20+, `node server.js`.
 - **Read-only Zoho access.** A Zoho Self Client refresh token with only these scopes:
   `ZohoCRM.coql.READ,ZohoCRM.modules.leads.READ,ZohoCRM.modules.calls.READ,ZohoCRM.modules.events.READ,ZohoCRM.modules.deals.READ,ZohoProjects.projects.READ,ZohoProjects.tasks.READ`
 - **Secrets live only in Render environment variables**, never in the repo or on the players.
-- **Fail closed.** With no `DASH_KEY` (or `DASH_USER` + `DASH_PASS`) set, every board request returns 401. Only `/healthz` and `/logo.png` are public.
+- **Fail closed.** With no `DASH_KEY` (or `DASH_USER` + `DASH_PASS`) set, every board request returns 401. Only `/healthz`, `/logo.png` and the phone view's sign-in page are reachable without a key; the phone view's data needs a sign-in from today's QR code, and with no `MOBILE_SECRET` the phone view is off.
 - **Access options:** `?key=<DASH_KEY>` in the Yodeck URL, or HTTP Basic Auth (`https://user:pass@host/left`). Comparisons are constant-time.
 - **Network:** restrict the service to the office's public IP with Render's inbound IP rules (Settings → Networking), or set `ALLOWED_IPS` (comma-separated).
 - Responses send `no-store`, `noindex`, `nosniff` and `no-referrer` (so the key never leaks in a Referer header).
@@ -56,8 +56,9 @@ No dependencies: Node 20+, `node server.js`.
 3. **Off-site:** after scanning, the phone works anywhere. `ALLOWED_IPS` doesn't apply to `/m`, but Render's own inbound IP rules (Settings → Networking) apply to everything, so if those are on, phones only work on office Wi-Fi.
 4. **Look and size:** CFES orange squares on the cards' dark gray (an inverted code, about 7:1 contrast; iPhone Camera and Google Lens read these, some older scanner apps don't). 2 screen pixels per module, so the visible pattern is 58 px on a 1080p screen, about 1.9 in square on a 70" TV; scan it from close up. It sits inside the bottom-right card's corner, 52 px in from the right edge and 44 px up from the bottom, so a TV that crops its edges doesn't cut it off. That card gets extra right padding so nothing sits under it. A longer `PUBLIC_URL` makes the code a little bigger.
 5. **Printable codes:** `/m/qr?key=<DASH_KEY>` shows today's three codes large. They're only good until midnight.
-6. **Home screen:** use a browser bookmark, not "Add to Home Screen". On iPhone a home-screen app keeps its own cookies, so it can't see the sign-in from scanning.
-7. The phone view reads the same cached data as the boards and never calls Zoho.
+6. **FLARE:** the orange FLARE button on the phone opens a row of emoji (🔥 🎉 👏 🚀 💰 ☀️ ⚡ 🏆). Pick one and it floats up across the TV for the screen the phone is showing, and on the phone too. Only those eight can be sent, so no typed text reaches the TVs. Limits: one flare per phone every 4 seconds and 20 a minute per TV. The TVs check for flares every 3 seconds (that check never calls Zoho), and flares live only in the server's memory for a minute. The emoji are drawn with Google's Noto Color Emoji font so TVs without an emoji font still show them.
+7. **Home screen:** use a browser bookmark, not "Add to Home Screen". On iPhone a home-screen app keeps its own cookies, so it can't see the sign-in from scanning.
+8. The phone view reads the same cached data as the boards and never calls Zoho.
 
 ## Yodeck setup
 
