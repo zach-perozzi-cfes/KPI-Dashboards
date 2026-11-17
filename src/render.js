@@ -298,7 +298,7 @@ function tile(t) {
 const FLOW_IN = '#f49c20', FLOW_OUT = '#71a62b';
 const FLOW_COL = 800, FLOW_W = 540; // card width on the board; chart viewBox width inside it
 function flowChart(a, b, win, W) {
-  const H = 132, x0 = 8, x1 = W - 70, y0 = 10, y1 = H - 20;
+  const H = 132, x0 = 8, x1 = W - 60, y0 = 10, y1 = H - 20; // the right 60 holds the gap label
   const start = win.weeks[0];
   const n = Math.max(1, Math.min(28, Math.round((new Date(`${win.today}T12:00:00Z`) - new Date(`${start}T12:00:00Z`)) / 864e5) + 1));
   const cum = (dates) => {
@@ -308,7 +308,8 @@ function flowChart(a, b, win, W) {
   };
   const A = cum(a.dates), B = cum(b.dates);
   const top = Math.max(4, A[n - 1], B[n - 1]);
-  const x = (i) => (x0 + ((x1 - x0) * i) / 27).toFixed(1);
+  // The axis ends at today, so the lines run the full width.
+  const x = (i) => (x0 + ((x1 - x0) * i) / Math.max(1, n - 1)).toFixed(1);
   const y = (v) => (y1 - (v / top) * (y1 - y0)).toFixed(1);
   const line = (arr) => arr.map((v, i) => `${x(i)},${y(v)}`).join(' ');
   const area = (arr) => `${x(0)},${y1} ${line(arr)} ${x(n - 1)},${y1}`;
@@ -317,7 +318,7 @@ function flowChart(a, b, win, W) {
   const mid = (ya + yb) / 2;
   const bracket = Math.abs(yb - ya) >= 14
     ? `<path d="M${xe + 8},${Math.min(ya, yb) + 2} q6,0 6,6 v${Math.abs(yb - ya) / 2 - 10} l5,4 l-5,4 v${Math.abs(yb - ya) / 2 - 10} q0,6 -6,6" fill="none" stroke="#fff" stroke-width="1.5"/>` : '';
-  const ticks = win.weeks.map((w, i) => `<line x1="${x(i * 7)}" x2="${x(i * 7)}" y1="${y1}" y2="${y1 + 4}" stroke="#474747"/><text x="${x(i * 7)}" y="${H - 4}" fill="#a1a1a1" font-size="12" text-anchor="${i ? 'middle' : 'start'}">${md(w)}</text>`).join('');
+  const ticks = win.weeks.filter((w, i) => i * 7 <= n - 1).map((w, i) => `<line x1="${x(i * 7)}" x2="${x(i * 7)}" y1="${y1}" y2="${y1 + 4}" stroke="#474747"/><text x="${x(i * 7)}" y="${H - 4}" fill="#a1a1a1" font-size="12" text-anchor="${i ? 'middle' : 'start'}">${md(w)}</text>`).join('');
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Running totals over the last 4 weeks: ${esc(a.label)} ${A[n - 1]}, ${esc(b.label)} ${B[n - 1]}" font-family="Inter,Verdana,sans-serif">
 <defs><linearGradient id="fg-${a.key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${FLOW_IN}" stop-opacity=".55"/><stop offset="1" stop-color="${FLOW_IN}" stop-opacity=".15"/></linearGradient></defs>
 <line x1="${x0}" x2="${x1}" y1="${y1}" y2="${y1}" stroke="#272727"/>
