@@ -76,6 +76,9 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;te
 .shh button{font-size:14px;font-weight:700;color:#ffdb05;padding:6px 8px;white-space:nowrap}
 #shb{flex-grow:1;overflow-y:auto;padding:16px 16px calc(env(safe-area-inset-bottom) + 32px);display:flex;flex-direction:column;gap:14px}
 .sum{display:flex;align-items:baseline;gap:12px}.sum b{font-size:28px}.sum span{color:#ffdb05;font-weight:700;font-size:18px}
+.exp{border-left:4px solid #ffdb05}
+.exp h3{margin:0 0 6px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#ffdb05;font-weight:700}
+.exp p{margin:0;font-size:14px;line-height:1.5;color:#eaeaea}
 .gr h3{margin:0 0 6px;font-size:13px;color:#b8b8b8;font-weight:700}
 .sort{display:flex;gap:8px;margin-bottom:6px}
 .sort button{font-size:12px;padding:6px 10px;border:1px solid #3e3e3f;border-radius:14px;color:#b8b8b8}
@@ -380,7 +383,8 @@ function renderDrill(d) {
   const sort = hasAmt ? `<div class="sort"><button type="button" data-sort="amount" aria-pressed="${d.byAmount}">Largest</button><button type="button" data-sort="date" aria-pressed="${!d.byAmount}">Newest</button></div>` : '';
   return `<div data-title="${esc(d.title)}" hidden></div>
 <div class="sum"><b>${esc(d.total)}</b>${d.amount ? `<span>${esc(d.amount)}</span>` : ''}</div>
-<p class="sub">${esc(d.rule)}</p>${groups}
+${d.explain ? `<div class="card exp"><h3>What this shows</h3><p>${esc(d.explain)}</p></div>` : ''}
+<p class="sub"><b>How it’s counted:</b> ${esc(d.rule)}</p>${groups}
 <div class="card"><div class="ph"><h2>Records</h2><span class="sub">${d.records.length > MAX_RECS ? `first ${MAX_RECS} of ${d.records.length}` : ''}</span></div>${sort}
 ${shown.length ? `<ul class="recs">${recs}</ul>` : '<p class="empty">Nothing in this group</p>'}</div>`;
 }

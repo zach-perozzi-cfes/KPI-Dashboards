@@ -41,6 +41,8 @@ This file traces every number and chart on the three office monitor boards back 
 
 Each query above also pulls the record's `id` and a name, so the phone view (`/m`) can list the records behind each number: Leads `First_Name`, `Last_Name`, `Owner`; Calls `Call_Duration`; Events `Event_Title`; Deals `Deal_Name`, `Owner` (plus `Stage` for new deals and `Created_Time` for open deals, used for the age breakdown); Projects `name`; Tasks the task's project and owners. The boards themselves still show counts only.
 
+Each drill-down opens with a plain-language "What this shows" note for people outside the department (the `explain` text in `src/drill.js`), then the exact counting rule under "How it's counted".
+
 Every phone drill-down list is filtered with the same rule helpers in `src/metrics.js` as the number it opens from, so the list's count (and amount total) matches the board.
 
 ### Two rules used on several boards

@@ -65,13 +65,13 @@ function topNames(rows, key) {
   return { top: new Set(sorted.slice(0, 8).map((g) => g.name)), rest: sorted.length - 8 };
 }
 const OTHER = '__other__';
-const pending = (title) => ({ title, rule: 'Waiting for Zoho data.', records: [], groups: [], total: '–' });
+const pending = (title) => ({ title, explain: '', rule: 'Waiting for Zoho data.', records: [], groups: [], total: '–' });
 
 function make(title, rule, rows, rec, groups, opts = {}) {
   const records = rows.map(rec).sort((a, b) => (opts.byAmount ? (b.amount || 0) - (a.amount || 0) : 0) || sortKey(b.t) - sortKey(a.t));
   for (const r of records) Object.assign(r, when(r.t));
   const amt = rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
-  return { title, rule, records, groups: groups.filter((g) => g.rows.length), total: opts.total || `${rows.length} ${opts.unit || 'records'}`, amount: opts.money ? money(amt) : null, byAmount: !!opts.byAmount };
+  return { title, explain: opts.explain || '', rule, records, groups: groups.filter((g) => g.rows.length), total: opts.total || `${rows.length} ${opts.unit || 'records'}`, amount: opts.money ? money(amt) : null, byAmount: !!opts.byAmount };
 }
 
 // ---------- Inside Sales ----------
@@ -91,7 +91,7 @@ function sales(id, src, win) {
       { label: 'By day', rows: byDays(rows, win.ws, 7, d) },
       { label: 'By source', rows: countBy(rows, (r) => r.src) },
       { label: 'Last 4 weeks', rows: byWeek(src.leads.data, win, d) },
-    ], { unit: 'leads' });
+    ], { unit: 'leads', explain: 'A lead is a potential customer who has shown interest (through the website, a referral, an event or an ad) and has been entered into our CRM. This is how many new ones came in this week. More leads means more people the sales team can reach out to and turn into appointments.' });
   }
   if (kind === 'calls' || kind === 'callday') {
     if (!src.calls.data) return pending('Calls logged');
@@ -100,7 +100,7 @@ function sales(id, src, win) {
     const title = day ? `Calls · ${DAYS[Number(a)]} ${md(day)}` : 'Calls logged · this week';
     const groups = callGroups(rows);
     if (!day) groups.push({ label: 'By day', rows: byDays(rows, win.ws, 7, d) }, { label: 'Last 4 weeks', rows: byWeek(repCalls(), win, d) });
-    return make(title, `Calls on the lines of ${M.CALL_REPS.join(', ')} (rep read from the call Subject). Outbound = Call Type contains "out"; everything else, Missed included, counts as inbound.`, rows, callRec, groups, { unit: 'calls' });
+    return make(title, `Calls on the lines of ${M.CALL_REPS.join(', ')} (rep read from the call Subject). Outbound = Call Type contains "out"; everything else, Missed included, counts as inbound.`, rows, callRec, groups, { unit: 'calls', explain: `How many phone calls our inside sales reps made or took ${day ? 'on this day' : 'this week'}. Outbound calls are reps reaching out to leads and customers; inbound calls are people calling them. It is a quick read on how much sales outreach is happening.` });
   }
   if (kind === 'meetings' || kind === 'nextweek') {
     if (!src.meetings.data) return pending('Meetings');
@@ -110,7 +110,7 @@ function sales(id, src, win) {
     const groups = [{ label: 'By day', rows: byDays(rows, start, next ? 5 : 7, d) }, { label: 'By owner', rows: countBy(rows, M.repName) }];
     if (!next) groups.push({ label: 'Last 4 weeks', rows: byWeek(src.meetings.data, win, d) });
     return make(next ? `Meetings booked · ${weekLabel(start).replace(/, \d{4}$/, '')}` : 'Meetings · this week',
-      next ? 'Every CRM Event starting next Monday–Friday, any owner.' : 'Every CRM Event starting this week (Mon–Sun), any owner or kind.', rows, mtgRec, groups, { unit: 'meetings' });
+      next ? 'Every CRM Event starting next Monday–Friday, any owner.' : 'Every CRM Event starting this week (Mon–Sun), any owner or kind.', rows, mtgRec, groups, { unit: 'meetings', explain: next ? 'Appointments already on the calendar for next week. Most are sales visits where a rep meets a homeowner to talk about solar, batteries or other work. A full calendar next week means sales activity is lined up ahead of time.' : 'Every appointment on the CRM calendar this week, mostly sales visits with homeowners. These meetings are where interest turns into a proposal, so this shows how busy the sales team is.' });
   }
   if (kind === 'grid') {
     if (!src.meetings.data) return pending('Meetings by rep');
@@ -126,7 +126,7 @@ function sales(id, src, win) {
     const groups = [];
     if (di == null) groups.push({ label: 'By day', rows: byDays(rows, gws, 5, d) });
     if (!rep) groups.push({ label: 'By rep', rows: countBy(rows, M.repName) });
-    return make(title, `CRM Events Monday–Friday${gws === win.ws ? ' this week' : ' next week'}, by owner. Quintin Driskell is left out of this grid.`, rows, mtgRec, groups, { unit: 'meetings' });
+    return make(title, `CRM Events Monday–Friday${gws === win.ws ? ' this week' : ' next week'}, by owner. Quintin Driskell is left out of this grid.`, rows, mtgRec, groups, { unit: 'meetings', explain: 'Appointments on each sales rep\u2019s calendar, day by day, for the work week. It shows who is meeting with customers and when, so it is easy to spot a rep with an open schedule or a day that is packed.' });
   }
   if (kind === 'src') {
     if (!src.leads.data) return pending('Lead sources');
@@ -137,7 +137,7 @@ function sales(id, src, win) {
     return make(title, `CRM Leads created since ${md(win.weeks[0])}, by Lead Source (blank = "None").`, rows, leadRec, [
       { label: 'By week', rows: byWeek(rows, win, d) },
       ...(a && a !== OTHER ? [] : [{ label: 'By source', rows: countBy(rows, (r) => r.src) }]),
-    ], { unit: 'leads' });
+    ], { unit: 'leads', explain: 'Where our new leads came from over the last four weeks, for example the website, a referral or a marketing campaign. It shows which channels bring in the most potential customers, which helps decide where to spend marketing time and money.' });
   }
   if (kind === 'sat') {
     if (!src.apptSat || !src.apptSat.data) return pending('Appointments sat');
@@ -151,7 +151,7 @@ function sales(id, src, win) {
         { label: 'Quality', rows: countBy(rows, (r) => r.q) },
         ...(a && a !== OTHER ? [] : [{ label: 'By source', rows: countBy(rows, (r) => r.src) }]),
         { label: 'By owner', rows: countBy(rows, (r) => r.owner || null) },
-      ], { unit: 'appointments' });
+      ], { unit: 'appointments', explain: `How many sales appointments actually took place in ${mon} with a real, qualified prospect, grouped by where the customer first came from. An appointment only counts here once it happened and was rated a good-quality meeting, so this shows which lead sources produce real sales conversations, not just names.` });
   }
   return null;
 }
@@ -182,20 +182,20 @@ function pipeline(id, src, win) {
       { label: 'Standard vs service', rows: countBy(rows, svcLabel) },
       { label: 'By stage now', rows: countBy(rows, (r) => r.stage || null) },
       { label: 'By owner', rows: countBy(rows, (r) => r.owner || null) },
-    ], { unit: 'deals' });
+    ], { unit: 'deals', explain: `A deal is a specific job we are trying to sell to a customer. This is how many new deals were opened ${prev ? 'during the same days last month, for comparison' : 'so far this month'}, whatever has happened to them since. Service deals are repair and maintenance work; standard deals are new installs like solar and batteries.` });
   }
   if (!src.wonDeals.data && kind !== 'open') return pending('Closed won');
   if (kind === 'avg') {
     const svc = a === 'svc';
     const rows = wonYtd().filter((r) => M.isService(r.pipeline) === svc);
     const amt = rows.reduce((s, r) => s + r.amount, 0);
-    return make(`Avg deal size · ${svc ? 'service' : 'standard'} · ${year}`, `${WON_RULE} Average = total Amount ÷ number of deals.`, rows, wonRec, wonGroups(rows), { unit: 'deals', money: true, byAmount: true, total: `${money(rows.length ? amt / rows.length : 0)} avg · ${rows.length} deals` });
+    return make(`Avg deal size · ${svc ? 'service' : 'standard'} · ${year}`, `${WON_RULE} Average = total Amount ÷ number of deals.`, rows, wonRec, wonGroups(rows), { unit: 'deals', money: true, byAmount: true, total: `${money(rows.length ? amt / rows.length : 0)} avg · ${rows.length} deals`, explain: `The typical dollar value of a ${svc ? 'service (repair and maintenance)' : 'standard (new install, like solar or batteries)'} job we sold this year: the total of every sale divided by the number of sales. If it rises we are selling bigger jobs; if it falls, jobs are getting smaller.` });
   }
   if (kind === 'mtd' || kind === 'ytd' || kind === 'month') {
     const m = kind === 'mtd' ? curMonth : kind === 'month' ? Number(a) : null;
     const rows = wonYtd().filter((r) => m == null || Number(r.date.slice(5, 7)) === m);
     const title = kind === 'ytd' ? `Closed won · ${year}` : `Closed won · ${MONTHS[m - 1]}${m === curMonth ? ' to date' : ''}`;
-    return make(title, WON_RULE, rows, wonRec, wonGroups(rows, m == null), { unit: 'deals', money: true, byAmount: true });
+    return make(title, WON_RULE, rows, wonRec, wonGroups(rows, m == null), { unit: 'deals', money: true, byAmount: true, explain: `Sales we have closed: jobs the customer signed and agreed to buy ${kind === 'ytd' ? 'so far this year' : `in ${MONTHS[m - 1]}${m === curMonth ? ' so far' : ''}`}, and their total dollar value. This is the sales revenue the company has booked, before the work is installed. Standard jobs are new installs; service jobs are repair and maintenance.` });
   }
   if (kind === 'open') {
     if (!src.openDeals.data) return pending('Open deals');
@@ -212,12 +212,21 @@ function pipeline(id, src, win) {
     const ages = countBy(rows, age);
     if (ages.length) groups.push({ label: 'Age (since created)', rows: ['0–30 days', '31–90 days', '91–365 days', 'Over a year'].map((n) => ages.find((g) => g.name === n)).filter(Boolean) });
     return make(title, 'Every Deal not Closed Won/Lost/Deferred/Disqualified/Hold or Appointment Cancelled, any age. Department = the deal\'s CRM Layout.', rows,
-      (r) => ({ ...dealRec(r, join(r.stage, short(r.layout))), t: r.created }), groups, { unit: 'deals', money: true, byAmount: true });
+      (r) => ({ ...dealRec(r, join(r.stage, short(r.layout))), t: r.created }), groups, { unit: 'deals', money: true, byAmount: true, explain: `Deals still being worked on: customers who have not yet said yes or no${stage ? ` and are currently at the \u201c${stage}\u201d step` : ''}${layout ? `, in the ${short(layout)} department` : ''}. Each deal moves through steps from first appointment, to design, to proposal, to negotiation. The dollar figure is what these jobs would be worth if they all closed, so it shows how much potential business is in the works.` });
   }
   return null;
 }
 
 // ---------- Operations ----------
+// Plain-language meaning of each operations milestone, for someone outside the department.
+const OPS_EXPLAIN = {
+  design: 'Before anything is built, our designers lay out the system for each home: where the panels go and how it is wired. A finished design is what lets a job move on to permitting.',
+  permitApp: 'Every install needs approval from the local government (the county or city) before work starts. This step is our team sending in that application.',
+  permitOk: 'A permit is the local government\u2019s approval to do the work. Once it comes back approved we tell the homeowner and the job can be scheduled for install.',
+  module: 'Module installs are the crew putting the solar panels up on the roof or a ground mount, the most visible step of an install.',
+  electrical: 'Electrical installs are the electricians wiring the system into the home and its electrical panel so it can produce power.',
+  ev: 'EV charger installs are electric-vehicle chargers our electricians put in at customers\u2019 homes or businesses.',
+};
 function ops(id, src, win) {
   const [kind, a] = id.split('~');
   const wkEnd = addDays(win.ws, 7);
@@ -231,7 +240,7 @@ function ops(id, src, win) {
       return make(`Projects created · ${four ? 'last 4 weeks' : 'this week'}`, 'Zoho Projects by created date.', rows, projRec, [
         four ? { label: 'By week', rows: byWeek(rows, win, d) } : { label: 'By day', rows: byDays(rows, win.ws, 7, d) },
         { label: 'By type', rows: countBy(rows, (r) => M.GROUP_LABELS[r.group] || r.group) },
-      ], { unit: 'projects' });
+      ], { unit: 'projects', explain: `Once a customer signs, their job becomes a project that the operations team manages from design through installation. This is how many new projects were opened ${four ? 'over the last four weeks' : 'this week'}, which shows how much new work is coming into operations.` });
     }
     const k = M.TASK_KINDS.find((t) => t.key === a);
     if (!k) return null;
@@ -245,7 +254,7 @@ function ops(id, src, win) {
     return make(`${k.label} · ${four ? 'last 4 weeks' : 'this week'}`, `Closed Zoho Projects tasks whose ${rule}, by completed date. Counts tasks, not projects.`, rows, taskRec, [
       four ? { label: 'By week', rows: byWeek(rows, win, d) } : { label: 'By day', rows: byDays(rows, win.ws, 7, d) },
       { label: 'Task name', rows: countBy(rows, (t) => t.name) },
-    ], { unit: 'tasks' });
+    ], { unit: 'tasks', explain: `${OPS_EXPLAIN[k.key]} This is how many were finished ${four ? 'over the last four weeks' : 'this week'}.` });
   }
   if (kind === 'group') {
     if (!src.projects.data) return pending('New projects by type');
@@ -255,7 +264,7 @@ function ops(id, src, win) {
     return make(a ? `New projects · ${a}` : 'New projects · last 4 weeks', 'Zoho Projects created in the last 4 weeks, by project group.', rows, projRec, [
       { label: 'By week', rows: byWeek(rows, win, d) },
       ...(a ? [] : [{ label: 'By type', rows: countBy(rows, lbl) }]),
-    ], { unit: 'projects' });
+    ], { unit: 'projects', explain: `New projects opened in the last four weeks${a ? ` of the \u201c${a}\u201d type` : ''}, grouped by kind of job, such as a solar install, an EV charger or adding panels to an existing system. It shows the mix of work heading to the install crews.` });
   }
   return null;
 }
