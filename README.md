@@ -12,7 +12,7 @@ Each board is a fixed 1920×1080 layout that scales to fit any screen. The look:
 
 **Phone view (`/m`):** the same three boards as swipeable screens (swipe left/right or tap a tab; each screen scrolls up and down). Tap any number, bar, row or grid cell to see the records behind it: name, owner, date, amount, and a link to the record in Zoho. Each list uses the same rule as the number on the board, so it always adds up. See [Phone view](#phone-view).
 
-**Data schedule:** the server pulls Zoho once when it starts, then only at the times in `REFRESH_TIMES` (Eastern time, default `07:00,12:00,16:00`), so three pulls a day. Each board header shows when it was last updated and when the next pull is due. The pages check this server's cached copy every `POLL_SECONDS` (default 300) and swap in new numbers without a full reload, because Yodeck does not reload a lone web page on its own. Those checks never call Zoho.
+**Data schedule:** the server pulls Zoho once when it starts, then only at the times in `REFRESH_TIMES` (Eastern time, default `07:00,12:00,16:00`), so three pulls a day. The board headers show only a clock; `/status?key=…` shows when each source was last pulled. The pages check this server's cached copy every `POLL_SECONDS` (default 300) and swap in new numbers without a full reload, because Yodeck does not reload a lone web page on its own. Those checks never call Zoho.
 
 No dependencies: Node 20+, `node server.js`.
 

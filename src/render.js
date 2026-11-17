@@ -3,7 +3,7 @@
 // orange #f49c20 on near-black, with a green-to-orange gradient accent; Inter + JetBrains Mono).
 
 const { addDays } = require('./metrics');
-const { nextSlot, maxGapHours, slotLabel } = require('./schedule');
+const { maxGapHours } = require('./schedule');
 
 const BOARDS = {
   left: { title: 'Inside Sales', sources: ['leads', 'calls', 'meetings', 'apptSat'], system: 'Zoho CRM' },
@@ -120,12 +120,11 @@ function header(board, metrics, sources, opts = {}) {
   const failing = b.sources.filter((k) => sources[k] && sources[k].error);
   // Pulls run on a fixed schedule, so "late" means older than the longest gap between pulls plus an hour.
   const stale = fetched && Date.now() - new Date(fetched).getTime() > (maxGapHours() + 1) * 3600 * 1000;
-  let status = fetched
-    ? `updated ${dayTimeFmt.format(new Date(fetched))} · next ${slotLabel(nextSlot())}`
-    : 'waiting for first sync';
-  if (failing.length || stale) status += ` · <span class="warn">refresh delayed</span>`;
+  // Under the clock only when something is wrong; normally the clock stands alone.
+  const status = !fetched ? 'waiting for first sync'
+    : (failing.length || stale) ? `<span class="warn">refresh delayed</span> · updated ${dayTimeFmt.format(new Date(fetched))}` : '';
   return `<header><div class="ht"><h1>${esc(b.title)}</h1></div>
-<div class="hr"><p class="clock" data-clock>${clockFmt.format(new Date())}</p><p class="sub">${status}</p></div></header>`;
+<div class="hr"><p class="clock" data-clock>${clockFmt.format(new Date())}</p>${status ? `<p class="sub">${status}</p>` : ''}</div></header>`;
 }
 
 // Today's phone sign-in code for this screen, tiny in the bottom-right corner (see src/session.js).
