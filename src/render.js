@@ -90,9 +90,10 @@ tr.now{color:#ffdb05;font-weight:700}tr.now th{color:#ffdb05;font-weight:700}
 .tile .big{font-size:80px}
 .flow{padding:16px 22px;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:6px 24px;min-height:0}
 .flow .lbl{grid-column:1 / -1}
-.fl{display:flex;flex-direction:column;justify-content:center;gap:10px}
-.fm{display:flex;align-items:center;gap:14px}
-.fm .n{font-size:52px;font-weight:700;line-height:1;min-width:1.3em;text-align:right}
+.fl{display:grid;grid-template-columns:auto auto;align-content:center;align-items:center;gap:10px 14px}
+.fm{display:contents}
+.fl>.sub{grid-column:1 / -1}
+.fm .n{font-size:52px;font-weight:700;line-height:1;min-width:1.3em;text-align:center;font-variant-numeric:tabular-nums}
 .fm .t{display:flex;flex-direction:column;gap:3px;font-size:14px;color:#a1a1a1;white-space:nowrap}
 .fm .t b{font-size:16px}
 .fc{min-height:0;position:relative}
