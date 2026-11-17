@@ -108,6 +108,7 @@ tr.now{color:#ffdb05;font-weight:700}tr.now th{color:#ffdb05;font-weight:700}
    the outer pixels). That card gets extra right padding so nothing sits under the code. */
 .qr{position:absolute;right:52px;bottom:44px;line-height:0;padding:3px;border:2px solid #71a62b;border-radius:6px;background:#0f0f0f}
 .qr svg{display:block}
+.qr::before{content:'SCAN';position:absolute;left:-10px;right:-10px;bottom:100%;margin-bottom:5px;text-align:center;font-size:11px;line-height:1;font-weight:700;letter-spacing:.22em;text-indent:.22em;color:#71a62b}
 .hasqr>section:last-child>.card:last-child{padding-right:96px}
 `;
 
