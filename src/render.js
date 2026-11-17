@@ -7,7 +7,7 @@ const { nextSlot, maxGapHours, slotLabel } = require('./schedule');
 const BOARDS = {
   left: { title: 'Inside Sales', sources: ['leads', 'calls', 'meetings', 'apptSat'], system: 'Zoho CRM' },
   middle: { title: 'Sales Pipeline', sources: ['openDeals', 'wonDeals', 'newDeals'], system: 'Zoho CRM Deals' },
-  right: { title: 'Operations', sources: ['projects', 'tasksDesign', 'tasksPermit', 'tasksInstall'], system: 'Zoho Projects' },
+  right: { title: 'Operations', sources: ['projects', 'tasksDesign', 'tasksPermit', 'tasksInstall', 'tickets'], system: 'Zoho Projects + Desk' },
 };
 
 const { MONTHS, DAYS, esc, sum, md, dnum, weekLabel, money, delta, avg, fmtAvg, dayTimeFmt } = require('./format');
@@ -67,11 +67,26 @@ thead th{color:#b8b8b8;font-size:15px;font-weight:400;padding-top:0}
 tbody tr{border-top:1px solid #3e3e3f}
 tr.now{color:#ffdb05;font-weight:700}tr.now th{color:#ffdb05;font-weight:700}
 .empty{flex-grow:1;display:flex;align-items:center;justify-content:center;color:#b8b8b8;font-size:22px;text-align:center;padding:24px}
-.tiles{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:12px 20px;flex-shrink:0}
+.tiles{display:flex;flex-direction:column;gap:16px;flex:1 1 0;min-height:0}
+.trow{display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px 20px;flex:1 1 0;min-height:0}
 .grp{font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:#b8b8b8;margin:0;font-weight:700;padding-bottom:8px}
-.tile{padding:20px 22px;display:flex;flex-direction:column;gap:12px}
-.tile .big{font-size:72px}
-.spark{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;align-items:end;height:48px;border-bottom:1px solid #3e3e3f}
+.tile{padding:16px 22px;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:6px 24px;min-height:0}
+.tile .lbl{grid-column:1 / -1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .tl{display:flex;flex-direction:column;justify-content:flex-end;gap:8px}
+.tile .tr{display:flex;flex-direction:column;gap:5px;min-height:0}
+.tile .big{font-size:80px}
+.flow{padding:16px 22px;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:6px 24px;min-height:0}
+.flow .lbl{grid-column:1 / -1}
+.fl{display:flex;flex-direction:column;justify-content:center;gap:10px}
+.fm{display:flex;align-items:center;gap:14px}
+.fm .n{font-size:52px;font-weight:700;line-height:1;min-width:1.3em;text-align:right}
+.fm .t{display:flex;flex-direction:column;gap:3px;font-size:14px;color:#b8b8b8;white-space:nowrap}
+.fm .t b{font-size:16px}
+.fc{min-height:0;position:relative}
+.fc svg{position:absolute;inset:0;width:100%;height:100%}
+.tight .row{padding:5px 0}.tight .row span:first-child{font-size:15px}.tight .row span:last-child{font-size:21px}
+.spark{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:minmax(0,1fr);gap:6px;align-items:end;height:48px;border-bottom:1px solid #3e3e3f}
+.tile .spark{height:auto;flex:1 1 0;min-height:36px}
 .spark div{border-radius:3px 3px 0 0}
 .pw{background:#5f5f61}
 .wkn{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;font-size:12px;color:#b8b8b8;text-align:center}
@@ -80,7 +95,7 @@ tr.now{color:#ffdb05;font-weight:700}tr.now th{color:#ffdb05;font-weight:700}
 .row span:first-child{color:#eaeaea;font-size:16px}.row span:last-child{font-size:26px;font-weight:700}
 /* Tucked inside the bottom-right card's corner, well clear of the screen edge (TVs can crop
    the outer pixels). That card gets extra right padding so nothing sits under the code. */
-.qr{position:absolute;right:52px;bottom:44px;line-height:0}
+.qr{position:absolute;right:52px;bottom:44px;line-height:0;padding:3px;border:2px solid #71a62b;border-radius:5px;background:#262627}
 .qr svg{display:block}
 .hasqr>section:last-child>.card:last-child{padding-right:96px}
 `;
@@ -257,12 +272,58 @@ ${newTile}
 
 // ---------------- RIGHT: Operations ----------------
 function tile(t) {
-  if (!t.wk) return `<div class="card tile"><p class="lbl">${esc(t.label)}</p><p class="big">–</p><p class="sub">waiting for Zoho</p></div>`;
+  if (!t.wk) return `<div class="card tile"><p class="lbl">${esc(t.label)}</p><div class="tl"><p class="big">–</p><p class="sub">waiting for Zoho</p></div></div>`;
   const cur = t.wk[3], prev = t.wk[2];
   const mx = Math.max(1, ...t.wk);
-  const bars = t.wk.map((v, i) => `<div class="${i === 3 ? 'vg' : 'pw'}" style="height:${Math.max(2, Math.round((v / mx) * 48))}px"></div>`).join('');
-  return `<div class="card tile"><p class="lbl">${esc(t.label)}</p><p class="big">${cur}</p><p class="sub">${delta(cur, prev, 'vs last wk')}</p>
-<div class="spark">${bars}</div><div class="wkn">${t.wk.map((v) => `<span>${v}</span>`).join('')}</div></div>`;
+  const bars = t.wk.map((v, i) => `<div class="${i === 3 ? 'vg' : 'pw'}" style="height:${v ? `${Math.max(4, Math.round((v / mx) * 100))}%` : '2px'}"></div>`).join('');
+  return `<div class="card tile"><p class="lbl">${esc(t.label)}</p><div class="tl"><p class="big">${cur}</p><p class="sub">${delta(cur, prev, 'vs last wk')}</p></div>
+<div class="tr"><div class="spark">${bars}</div><div class="wkn">${t.wk.map((v) => `<span>${v}</span>`).join('')}</div></div></div>`;
+}
+
+// Cumulative flow for a pair of tiles (permits submitted vs received, tickets in vs closed):
+// running totals by day over the last 4 weeks, with the gap between them shaded.
+// The gap is how much the queue grew in these 4 weeks, not the all-time backlog.
+const FLOW_IN = '#f49c20', FLOW_OUT = '#71a62b';
+const FLOW_COL = 800, FLOW_W = 540; // card width on the board; chart viewBox width inside it
+function flowChart(a, b, win, W) {
+  const H = 132, x0 = 8, x1 = W - 70, y0 = 10, y1 = H - 20;
+  const start = win.weeks[0];
+  const n = Math.max(1, Math.min(28, Math.round((new Date(`${win.today}T12:00:00Z`) - new Date(`${start}T12:00:00Z`)) / 864e5) + 1));
+  const cum = (dates) => {
+    const out = []; let c = 0;
+    for (let i = 0; i < n; i++) { const d = addDays(start, i); c += dates.filter((x) => x === d).length; out.push(c); }
+    return out;
+  };
+  const A = cum(a.dates), B = cum(b.dates);
+  const top = Math.max(4, A[n - 1], B[n - 1]);
+  const x = (i) => (x0 + ((x1 - x0) * i) / 27).toFixed(1);
+  const y = (v) => (y1 - (v / top) * (y1 - y0)).toFixed(1);
+  const line = (arr) => arr.map((v, i) => `${x(i)},${y(v)}`).join(' ');
+  const area = (arr) => `${x(0)},${y1} ${line(arr)} ${x(n - 1)},${y1}`;
+  const gap = A[n - 1] - B[n - 1];
+  const ya = Number(y(A[n - 1])), yb = Number(y(B[n - 1])), xe = Number(x(n - 1));
+  const mid = (ya + yb) / 2;
+  const bracket = Math.abs(yb - ya) >= 14
+    ? `<path d="M${xe + 8},${Math.min(ya, yb) + 2} q6,0 6,6 v${Math.abs(yb - ya) / 2 - 10} l5,4 l-5,4 v${Math.abs(yb - ya) / 2 - 10} q0,6 -6,6" fill="none" stroke="#fff" stroke-width="1.5"/>` : '';
+  const ticks = win.weeks.map((w, i) => `<line x1="${x(i * 7)}" x2="${x(i * 7)}" y1="${y1}" y2="${y1 + 4}" stroke="#5f5f61"/><text x="${x(i * 7)}" y="${H - 4}" fill="#b8b8b8" font-size="12" text-anchor="${i ? 'middle' : 'start'}">${md(w)}</text>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Running totals over the last 4 weeks: ${esc(a.label)} ${A[n - 1]}, ${esc(b.label)} ${B[n - 1]}" font-family="Verdana,sans-serif">
+<defs><linearGradient id="fg-${a.key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${FLOW_IN}" stop-opacity=".55"/><stop offset="1" stop-color="${FLOW_IN}" stop-opacity=".15"/></linearGradient></defs>
+<line x1="${x0}" x2="${x1}" y1="${y1}" y2="${y1}" stroke="#3e3e3f"/>
+<polygon points="${area(A)}" fill="url(#fg-${a.key})"/><polygon points="${area(B)}" fill="#2e4219"/>
+<polyline points="${line(A)}" fill="none" stroke="${FLOW_IN}" stroke-width="3.5" stroke-linejoin="round"/>
+<polyline points="${line(B)}" fill="none" stroke="${FLOW_OUT}" stroke-width="3.5" stroke-linejoin="round"/>
+${bracket}<text x="${xe + (bracket ? 24 : 10)}" y="${mid + 6}" fill="#fff" font-size="17" font-weight="700">${gap > 0 ? '+' : ''}${gap}</text>
+<text x="${xe + (bracket ? 24 : 10)}" y="${mid + 21}" fill="#b8b8b8" font-size="11">queue</text>${ticks}</svg>`;
+}
+function flowMetric(t, color) {
+  const cur = t.wk[3], prev = t.wk[2];
+  return `<div class="fm"><span class="n" style="color:${color}">${cur}</span><span class="t"><b style="color:${color}">${esc(t.short)}</b><span>${delta(cur, prev, 'vs last wk')}</span></span></div>`;
+}
+// One card for a pair: this week's two counts on the left, the 4-week flow chart on the right.
+function flowCard(title, a, b, win, W) {
+  if (!a.wk || !b.wk) return `<div class="card flow"><p class="lbl">${esc(title)}</p><div class="fl"><p class="sub">waiting for Zoho</p></div></div>`;
+  return `<div class="card flow"><p class="lbl">${esc(title)} <span class="sub" style="font-weight:400">· this week, and running total over 4 weeks</span></p>
+<div class="fl">${flowMetric(a, FLOW_IN)}${flowMetric(b, FLOW_OUT)}</div><div class="fc">${flowChart(a, b, win, W)}</div></div>`;
 }
 
 function lineChart(pr) {
@@ -286,17 +347,27 @@ function lineChart(pr) {
 }
 
 function opsBoard(o, win) {
-  const tiles = `<section class="tiles"><p class="grp" style="grid-column:span 4;border-bottom:2px solid #71a62b">Pre-construction</p><p class="grp" style="grid-column:span 3;border-bottom:2px solid #ffdb05">Installs completed</p>
-${o.tiles.map(tile).join('')}</section>`;
+  // Two rows: pre-construction on top; installs and service tickets underneath.
+  // Permits and tickets are pairs (in vs out), shown as one flow card each.
+  const by = (k) => o.tiles.find((t) => t.key === k);
+  const pair = (ka, sa, kb, sb) => [{ ...by(ka), short: sa }, { ...by(kb), short: sb }];
+  const [pA, pB] = pair('permitApp', 'Submitted', 'permitOk', 'Received');
+  const [tA, tB] = pair('ticketsIn', 'Incoming', 'ticketsClosed', 'Closed');
+  const pre = ['projects', 'design'].map(by), inst = o.tiles.filter((t) => t.group === 'install');
+  const head = (label, n, color) => `<p class="grp" style="grid-column:span ${n};border-bottom:2px solid ${color}">${label}</p>`;
+  // Both flow cards sit in the same fixed-width right column so their edges line up.
+  const cols = (n) => `grid-template-columns:repeat(${n},minmax(0,1fr)) ${FLOW_COL}px`;
+  const tiles = `<section class="tiles"><div class="trow" style="${cols(pre.length)}">${head('Pre-construction', pre.length + 1, '#71a62b')}${pre.map(tile).join('')}${flowCard('Permits', pA, pB, win, FLOW_W)}</div>
+<div class="trow" style="${cols(inst.length)}">${head('Installs completed', inst.length, '#ffdb05')}${head('Service tickets', 1, '#f49c20')}${inst.map(tile).join('')}${flowCard('Tickets', tA, tB, win, FLOW_W)}</div></section>`;
   const pr = o.projects;
   const line = pr ? `<div class="card panel" style="gap:10px"><div class="ph"><h2 class="lbl">Projects created · running total</h2><span class="key"><span style="width:18px;height:4px;background:#71a62b;display:inline-block"></span>This week</span><span class="key"><span style="width:18px;border-top:2px dashed #eaeaea;display:inline-block"></span>Last week</span></div>${lineChart(pr)}</div>` : waiting();
   const gMax = pr ? Math.max(1, ...pr.groups.map((g) => g.n)) : 1;
   const types = pr ? `<div class="card panel"><div class="ph"><h2 class="lbl">New projects by type</h2><span class="sub">last 4 weeks · ${pr.total4}</span></div>
 <div class="hb" style="grid-template-columns:170px minmax(0,1fr) 40px 64px;gap:16px 14px"><span style="font-size:13px;color:#b8b8b8">Type</span><span></span><span style="font-size:13px;color:#b8b8b8;text-align:right">4 wk</span><span style="font-size:13px;color:#b8b8b8;text-align:right">this wk</span>
 ${pr.groups.slice(0, 8).map((g) => `<span style="color:#eaeaea">${esc(g.name)}</span><div class="bar g" style="width:${Math.max(1, (g.n / gMax) * 100).toFixed(1)}%"></div><span class="r">${g.n}</span><span style="text-align:right;font-weight:700;color:${g.now ? '#ffdb05' : '#b8b8b8'}">${g.now}</span>`).join('')}</div></div>` : waiting();
-  const totals = `<div class="card panel"><h2 class="lbl">4-week totals</h2><p class="sub">${md(win.weeks[0])} – ${md(addDays(win.ws, 6))}</p><div>
+  const totals = `<div class="card panel"><h2 class="lbl">4-week totals</h2><p class="sub">${md(win.weeks[0])} – ${md(addDays(win.ws, 6))}</p><div class="tight">
 ${o.tiles.map((t) => `<div class="row"><span>${esc(t.label)}</span><span>${t.wk ? sum(t.wk) : '–'}</span></div>`).join('')}</div></div>`;
-  return `${tiles}<section style="display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr) minmax(0,0.8fr);gap:24px;flex-grow:1;min-height:0">${line}${types}${totals}</section>`;
+  return `${tiles}<section style="display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr) minmax(0,0.8fr);gap:24px;flex:0 0 420px;min-height:0">${line}${types}${totals}</section>`;
 }
 
 // opts.qr: inline SVG of today's phone sign-in code for this board, shown bottom-right.

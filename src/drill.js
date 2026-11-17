@@ -34,6 +34,7 @@ function callRec(r) {
 const mtgRec = (r) => ({ name: dash(r.title || 'Meeting'), sub: M.repName(r), t: r.t, href: crm('Events', r.id) });
 const dealRec = (r, extra) => ({ name: dash(r.name), sub: join(r.owner, extra), t: r.t || r.date || r.created, amount: r.amount, href: crm('Potentials', r.id) });
 const projRec = (r) => ({ name: dash(r.name), sub: M.GROUP_LABELS[r.group] || r.group, t: r.created, href: proj(r.id) });
+const ticketRec = (dateField) => (r) => ({ name: join(r.number && `#${r.number}`, dash(r.subject)), sub: join(r.contact, r.owner || 'Unassigned', r.status), t: r[dateField], href: r.href || '' });
 const taskRec = (r) => ({ name: dash(r.project), sub: join(r.name, r.owner), t: r.completed, href: proj(r.projectId) });
 
 // ---------- helpers ----------
@@ -241,6 +242,20 @@ function ops(id, src, win) {
         four ? { label: 'By week', rows: byWeek(rows, win, d) } : { label: 'By day', rows: byDays(rows, win.ws, 7, d) },
         { label: 'By type', rows: countBy(rows, (r) => M.GROUP_LABELS[r.group] || r.group) },
       ], { unit: 'projects', explain: `Once a customer signs, their job becomes a project that the operations team manages from design through installation. This is how many new projects were opened ${four ? 'over the last four weeks' : 'this week'}, which shows how much new work is coming into operations.` });
+    }
+    const tk = M.TICKET_KINDS.find((t) => t.key === a);
+    if (tk) {
+      if (!src.tickets || !src.tickets.data) return pending(tk.label);
+      const d = (r) => nyDate(r[tk.field]);
+      const rows = src.tickets.data.filter((r) => inRange(d(r), from, wkEnd));
+      const incoming = tk.key === 'ticketsIn';
+      return make(`${tk.label} · ${four ? 'last 4 weeks' : 'this week'}`, `Zoho Desk tickets by ${incoming ? 'created' : 'closed'} date. Spam is left out.${incoming ? ' Counts every new ticket, whatever its status now.' : ''}`, rows, ticketRec(tk.field), [
+        four ? { label: 'By week', rows: byWeek(rows, win, d) } : { label: 'By day', rows: byDays(rows, win.ws, 7, d) },
+        { label: 'Assigned to', rows: countBy(rows, (r) => r.owner || 'Unassigned') },
+        { label: 'Came in by', rows: countBy(rows, (r) => r.channel || 'Unknown') },
+      ], { unit: 'tickets', explain: incoming
+        ? `When a customer with a system we installed or service has a problem or question (a system not producing, a monitoring app offline, a roof leak, a warranty question), the service team opens a ticket in Zoho Desk. This is how many new tickets came in ${four ? 'over the last four weeks' : 'this week'}, which shows how much service work is arriving.`
+        : `A ticket is closed when the service team has resolved the customer’s issue. This is how many tickets were closed ${four ? 'over the last four weeks' : 'this week'}. Compared with incoming tickets, it shows whether the service team is keeping up.` });
     }
     const k = M.TASK_KINDS.find((t) => t.key === a);
     if (!k) return null;

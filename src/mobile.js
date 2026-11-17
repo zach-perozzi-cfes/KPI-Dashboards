@@ -251,9 +251,10 @@ ${DAYS.map((d, i) => `<text x="${xs[i].toFixed(1)}" y="${H - 4}" fill="#b8b8b8" 
 }
 
 function opsPane(o, win) {
-  const pre = o.tiles.filter((t) => t.group === 'pre'), inst = o.tiles.filter((t) => t.group === 'install');
+  const pre = o.tiles.filter((t) => t.group === 'pre'), inst = o.tiles.filter((t) => t.group === 'install'), tix = o.tiles.filter((t) => t.group === 'tickets');
   const tiles = `<div class="tiles"><p class="grp" style="border-bottom:2px solid #71a62b">Pre-construction</p>${pre.map(tile).join('')}
-<p class="grp" style="border-bottom:2px solid #ffdb05">Installs completed</p>${inst.map(tile).join('')}</div>`;
+<p class="grp" style="border-bottom:2px solid #ffdb05">Installs completed</p>${inst.map(tile).join('')}
+<p class="grp" style="border-bottom:2px solid #f49c20">Service tickets</p>${tix.map(tile).join('')}</div>`;
   const pr = o.projects;
   const line = pr ? btn('right:tile~projects', 'card tap', `<div class="ph"><h2>Projects created · running total</h2></div>
 <div><span class="key"><span class="sw g"></span>This week</span><span class="key"><span style="width:14px;border-top:2px dashed #eaeaea;display:inline-block"></span>Last week (${pr.lastCum[6]})</span></div>${lineChart(pr)}`) : '';

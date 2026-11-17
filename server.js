@@ -105,7 +105,7 @@ function baseUrl(req) {
 
 // Each board's QR opens the phone view on that board's screen: /M/I/<L|M|R><today's token>.
 // All upper case so the QR can use its compact alphanumeric mode (the host is case-insensitive
-// and /m/i/ links are matched case-insensitively), error correction L, 2 screen pixels per module.
+// and /m/i/ links are matched case-insensitively), error correction L, 1.6 screen pixels per module.
 const QR_SCREEN = { l: 'left', m: 'middle', r: 'right' };
 const signInUrl = (req, board) => `${baseUrl(req)}/M/I/${board[0]}${session.qrToken()}`.toUpperCase();
 const qrCache = new Map(); // url -> svg; the url changes at midnight
@@ -115,8 +115,8 @@ function boardQr(req, board) {
   if (!qrCache.has(url)) {
     if (qrCache.size > 30) qrCache.clear();
     // Inverted code: CFES orange modules on the card's dark gray (about 7:1 contrast). The border
-    // matches the card, so only the 58px pattern shows. iPhone Camera and Google Lens read inverted codes.
-    qrCache.set(url, qrSvg(url, { level: 'L', scale: 2, quiet: 1, dark: '#f49c20', light: '#262627', label: 'Scan to open this screen on your phone' }));
+    // matches the card, so only the ~46px pattern shows, inside a green border. iPhone Camera and Google Lens read inverted codes.
+    qrCache.set(url, qrSvg(url, { level: 'L', scale: 1.6, quiet: 1, dark: '#f49c20', light: '#262627', label: 'Scan to open this screen on your phone' }));
   }
   return qrCache.get(url);
 }

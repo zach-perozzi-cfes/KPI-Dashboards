@@ -274,6 +274,11 @@ const TASK_KINDS = [
   { key: 'electrical', label: 'Electrical installs', src: 'tasksInstall', test: (n) => /^electrical install/i.test(n) },
   { key: 'ev', label: 'EV chargers', src: 'tasksInstall', test: (n) => /^ev charger install/i.test(n) },
 ];
+// Zoho Desk tickets: incoming by created time, closed by closed time.
+const TICKET_KINDS = [
+  { key: 'ticketsIn', label: 'Incoming tickets', field: 'created' },
+  { key: 'ticketsClosed', label: 'Closed tickets', field: 'closed' },
+];
 const GROUP_LABELS = { EV: 'EV charger', 'Non PV Install': 'Non-PV install', Addition: 'PV addition', 'Commercial Installation': 'Commercial', 'Ungrouped Projects': 'Ungrouped' };
 
 function ops(src, win) {
@@ -305,8 +310,15 @@ function ops(src, win) {
   }
   for (const k of TASK_KINDS) {
     const data = src[k.src].data;
-    const wk = data ? perWeek(data.filter((t) => k.test(t.name)).map((t) => nyDate(t.completed)), win.weeks) : null;
-    tiles.push({ key: k.key, label: k.label, wk, group: ['module', 'electrical', 'ev'].includes(k.key) ? 'install' : 'pre' });
+    const dates = data ? data.filter((t) => k.test(t.name)).map((t) => nyDate(t.completed)) : null;
+    const wk = dates ? perWeek(dates, win.weeks) : null;
+    tiles.push({ key: k.key, label: k.label, wk, dates, group: ['module', 'electrical', 'ev'].includes(k.key) ? 'install' : 'pre' });
+  }
+  for (const k of TICKET_KINDS) {
+    const data = src.tickets && src.tickets.data;
+    const dates = data ? data.map((t) => nyDate(t[k.field])) : null;
+    const wk = dates ? perWeek(dates, win.weeks) : null;
+    tiles.push({ key: k.key, label: k.label, wk, dates, group: 'tickets' });
   }
   return { tiles, projects };
 }
@@ -319,5 +331,5 @@ function computeAll(sources, now = new Date()) {
 module.exports = {
   computeAll, windowFor, addDays, nyDate, dow, inRange, weekIndex,
   REP_NAMES, GRID_EXCLUDE, CALL_REPS, isRepCall, callRep, isOut, isSat, isService, gridWeekStart, repName,
-  STAGE_ORDER, stageRank, LAYOUT_SHORT, newDealWindow, TASK_KINDS, GROUP_LABELS,
+  STAGE_ORDER, stageRank, LAYOUT_SHORT, newDealWindow, TASK_KINDS, TICKET_KINDS, GROUP_LABELS,
 };

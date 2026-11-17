@@ -5,8 +5,8 @@ This file traces every number and chart on the three office monitor boards back 
 ## How the data is pulled
 
 - **When:** once when the server starts, then at the times in `REFRESH_TIMES`. The default is 7:00 AM, 12:00 PM and 4:00 PM Eastern. Between pulls the boards show the server's cached copy and never call Zoho.
-- **Access:** read-only. Zoho CRM is queried with COQL (`POST /crm/v7/coql`). Zoho Projects is queried with REST v3 (`/api/v3/portal/727368074/...`).
-- **Sources:** there are eleven. Each one is fetched on its own, so if one fails it keeps its last good data and the board shows "refresh delayed".
+- **Access:** read-only. Zoho CRM is queried with COQL (`POST /crm/v7/coql`). Zoho Projects is queried with REST v3 (`/api/v3/portal/727368074/...`). Zoho Desk is queried with the ticket search API (`GET /api/v1/tickets/search`, org id from `ZOHO_DESK_ORG_ID`).
+- **Sources:** there are twelve. Each one is fetched on its own, so if one fails it keeps its last good data and the board shows "refresh delayed".
 - **Time zone:** all dates are bucketed in America/New_York.
 - **"Updated" time in each header:** the oldest fetch time among that board's sources.
 
@@ -21,7 +21,7 @@ This file traces every number and chart on the three office monitor boards back 
 | Year to date | Jan 1 through today. |
 | Last month | The 1st through the last day of the previous calendar month. |
 
-### The eleven sources
+### The twelve sources
 
 | Source | Zoho app / module | Query | Fields used |
 | --- | --- | --- | --- |
@@ -36,10 +36,11 @@ This file traces every number and chart on the three office monitor boards back 
 | `tasksDesign` | Projects · Tasks | name contains "Design", status is any closed status, `last_updated_time >=` 22 days before this Monday | `name`, `completed_on` |
 | `tasksPermit` | Projects · Tasks | the same, name contains "Permit" | `name`, `completed_on` |
 | `tasksInstall` | Projects · Tasks | the same, name contains "Install" | `name`, `completed_on` |
+| `tickets` | Desk · Tickets | `modifiedTimeRange` from 22 days before this Monday through now. Spam (`isSpam`) is dropped. | `createdTime`, `closedTime` |
 
 ### Fields used only by the phone view
 
-Each query above also pulls the record's `id` and a name, so the phone view (`/m`) can list the records behind each number: Leads `First_Name`, `Last_Name`, `Owner`; Calls `Call_Duration`; Events `Event_Title`; Deals `Deal_Name`, `Owner` (plus `Stage` for new deals and `Created_Time` for open deals, used for the age breakdown); Projects `name`; Tasks the task's project and owners. The boards themselves still show counts only.
+Each query above also pulls the record's `id` and a name, so the phone view (`/m`) can list the records behind each number: Leads `First_Name`, `Last_Name`, `Owner`; Calls `Call_Duration`; Events `Event_Title`; Deals `Deal_Name`, `Owner` (plus `Stage` for new deals and `Created_Time` for open deals, used for the age breakdown); Projects `name`; Tasks the task's project and owners; Desk tickets `ticketNumber`, `subject`, `status`, `channel`, `assignee`, `contact` and `webUrl` (the link to the ticket). The boards themselves still show counts only.
 
 Each drill-down opens with a plain-language "What this shows" note for people outside the department (the `explain` text in `src/drill.js`), then the exact counting rule under "How it's counted".
 
@@ -157,7 +158,7 @@ Sources: `openDeals`, `wonDeals`, `newDeals` (Zoho CRM Deals).
 
 ## Operations (`/right`)
 
-Sources: `projects`, `tasksDesign`, `tasksPermit`, `tasksInstall` (Zoho Projects, portal 727368074).
+Sources: `projects`, `tasksDesign`, `tasksPermit`, `tasksInstall` (Zoho Projects, portal 727368074) and `tickets` (Zoho Desk).
 
 ### Weekly tiles
 Each tile's big number is **this week's** count (Mon–Sun). The arrow compares it with last week. The mini bars show the last 4 weeks, with this week in green.
@@ -173,8 +174,18 @@ For every task tile, the count is closed Zoho Projects tasks, bucketed by the we
 | Module installs | Installs completed | Closed tasks | starts with "Module Install" |
 | Electrical installs | Installs completed | Closed tasks | starts with "Electrical Install" |
 | EV chargers | Installs completed | Closed tasks | starts with "EV Charger Install" |
+| Incoming tickets | Service tickets | Desk tickets by `createdTime` | (not a task) |
+| Closed tickets | Service tickets | Desk tickets by `closedTime` | (not a task) |
+
+**Ticket tiles:** one Desk query feeds both. It asks for every ticket modified since 22 days before this Monday, because a ticket created or closed in the window was also modified in it. Incoming counts every new ticket, whatever its status now. Closed counts tickets by `closedTime`. The Desk search API allows a time range of up to one month, and this window is never more than 30 days.
 
 The task tiles count **tasks, not projects**. If one project has two closed tasks that both have "design" in the name, it adds 2 to Designs complete.
+
+### Permits and Tickets (flow cards)
+Permits submitted / received and Incoming / Closed tickets are shown as pairs, one card each, instead of four separate tiles. The counts and rules are the same as the tiles above.
+- **Left:** this week's count for each side (orange = in: submitted or incoming; green = out: received or closed), with the arrow compared with last week.
+- **Chart:** running totals by day over the last 4 weeks, starting at 0 on the first Monday and drawn up to today. The shaded gap between the lines, and the number beside it, is in minus out over those 4 weeks: how much the queue **grew** in that time. It is not the all-time backlog, because items submitted or opened before the 4 weeks aren't pulled. A negative number means the queue shrank.
+- The phone view still shows these as four separate tiles.
 
 ### Projects created · running total (line chart)
 - **What it counts:** Projects by `created_time`.
@@ -219,5 +230,6 @@ The task tiles count **tasks, not projects**. If one project has two closed task
   | Each CRM query | 20,000 |
   | Projects | 2,000 |
   | Each task query | 4,000 |
+  | Desk tickets | 5,000 (the Desk search API's own limit) |
 
   Rows past these limits are silently dropped.

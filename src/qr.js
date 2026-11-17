@@ -198,7 +198,7 @@ function penalty(mod, size) {
 function qrSvg(text, { px = 0, scale = 0, quiet = 4, level = 'M', label = 'QR code', dark = '#000', light = '#fff' } = {}) {
   const m = encode(text, level);
   const n = m.length, q = quiet, w = n + q * 2;
-  if (!px) px = w * (scale || 4);
+  if (!px) px = Math.round(w * (scale || 4));
   let d = '';
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (m[y][x]) d += `M${x + q} ${y + q}h1v1h-1z`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${w}" width="${px}" height="${px}" role="img" aria-label="${label}" shape-rendering="crispEdges"><rect width="${w}" height="${w}" fill="${light}"/><path d="${d}" fill="${dark}"/></svg>`;

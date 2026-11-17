@@ -1,11 +1,13 @@
 'use strict';
-// Read-only Zoho data layer: CRM (COQL) + Projects (REST v3).
+// Read-only Zoho data layer: CRM (COQL) + Projects (REST v3) + Desk (REST v1).
 // Credentials come only from environment variables (a Zoho Self Client refresh token).
 
 const ACCOUNTS = process.env.ZOHO_ACCOUNTS_URL || 'https://accounts.zoho.com';
 const CRM = process.env.ZOHO_CRM_API || 'https://www.zohoapis.com/crm/v7';
 const PROJ = process.env.ZOHO_PROJECTS_API || 'https://projectsapi.zoho.com/api/v3';
 const PORTAL = process.env.ZOHO_PORTAL_ID || '727368074';
+const DESK = process.env.ZOHO_DESK_API || 'https://desk.zoho.com/api/v1';
+const DESK_ORG = process.env.ZOHO_DESK_ORG_ID || '';
 
 let token = null;
 let tokenExp = 0;
@@ -134,6 +136,33 @@ async function closedTasksSince(nameContains, dateStr) {
   return out;
 }
 
+// Zoho Desk tickets modified since dateStr (the Desk search API caps a time range at one
+// month, and the fetch window is under 30 days). A ticket created or closed in the window was
+// modified in it too, so this one query feeds both the incoming and the closed counts.
+async function deskTicketsSince(dateStr, now) {
+  if (!DESK_ORG) throw new Error('ZOHO_DESK_ORG_ID is not set');
+  const range = `${new Date(`${dateStr}T00:00:00-05:00`).toISOString()},${now.toISOString()}`;
+  const out = new Map();
+  for (let from = 0; from < 5000; from += 100) {
+    const qs = new URLSearchParams({ modifiedTimeRange: range, sortBy: 'modifiedTime', from: String(from), limit: '100' });
+    const j = await zfetch(`${DESK}/tickets/search?${qs}`, { headers: { orgId: DESK_ORG } });
+    const list = (j && j.data) || [];
+    for (const t of list) {
+      if (t.isSpam) continue;
+      const a = t.assignee || {};
+      const c = t.contact || {};
+      out.set(String(t.id), {
+        id: String(t.id), number: t.ticketNumber || '', subject: t.subject || '',
+        created: t.createdTime || null, closed: t.closedTime || null, status: t.status || '', statusType: t.statusType || '',
+        channel: t.channel || '', owner: [a.firstName, a.lastName].filter(Boolean).join(' '),
+        contact: [c.firstName, c.lastName].filter(Boolean).join(' '), href: t.webUrl || '',
+      });
+    }
+    if (list.length < 100) break;
+  }
+  return [...out.values()];
+}
+
 // Each source is fetched independently so one failure never blanks the others.
 function sourceDefs(win) {
   const since = `${win.fetchFrom}T00:00:00-05:00`;
@@ -160,6 +189,7 @@ function sourceDefs(win) {
     tasksDesign: () => closedTasksSince('Design', win.fetchFrom),
     tasksPermit: () => closedTasksSince('Permit', win.fetchFrom),
     tasksInstall: () => closedTasksSince('Install', win.fetchFrom),
+    tickets: () => deskTicketsSince(win.fetchFrom, new Date()),
   };
 }
 
