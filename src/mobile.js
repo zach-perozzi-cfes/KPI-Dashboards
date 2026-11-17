@@ -109,10 +109,11 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;te
 /* FLARE: floating button, emoji picker, confirmation toast */
 .fab{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom) + 16px);z-index:6;background:linear-gradient(180deg,#ffdb05,#f49c20);color:#121212;font-weight:700;font-size:14px;letter-spacing:.08em;padding:13px 20px;border-radius:26px;box-shadow:0 4px 16px rgba(0,0,0,.55)}
 .fab:active{transform:scale(.96)}
-.picker{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom) + 74px);z-index:7;width:220px;background:#121212;border:1px solid #2a2a2a;border-radius:14px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.6);display:none}
+.picker{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom) + 74px);z-index:7;width:252px;max-height:calc(100vh - 160px);overflow-y:auto;background:#121212;border:1px solid #2a2a2a;border-radius:14px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.6);display:none}
 .picker.open{display:block}
 .picker p{margin:0 0 8px;font-size:12px;color:#a1a1a1;line-height:1.4}
-.emo{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.emo{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.picker h3{margin:10px 0 6px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#ff8a1f}
 .emo button{font-size:30px;line-height:1;padding:9px 0;text-align:center;border-radius:10px;font-family:'Noto Color Emoji','Apple Color Emoji','Segoe UI Emoji',sans-serif}
 .emo button:active{background:#272727}
 .emo img{height:34px;width:auto;display:block;margin:-2px auto}
@@ -377,6 +378,8 @@ function stats(sources) {
   return TABS.map(([k]) => `<template id="st-${k}">${status(k, sources)}</template>`).join('');
 }
 
+const emoBtn = (e) => `<button type="button" role="menuitem" data-flare="${e}" aria-label="Send ${e}">${e}</button>`;
+
 function renderMobile(metrics, sources, pollMs, { fragment = false } = {}) {
   if (fragment) return `<div id="strip-in">${panes(metrics)}</div><div id="stats-in">${stats(sources)}</div>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
@@ -387,7 +390,7 @@ function renderMobile(metrics, sources, pollMs, { fragment = false } = {}) {
 <main id="strip">${panes(metrics)}</main><div id="stats" hidden>${stats(sources)}</div>
 <div id="sheet" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="sht"><div class="shh"><button type="button" id="close" aria-label="Back">‹ Back</button><h2 id="sht"></h2></div><div id="shb"></div></div>
 <button type="button" class="fab" id="fab" aria-haspopup="true" aria-expanded="false" aria-controls="picker">FLARE</button>
-<div class="picker" id="picker" role="menu"><p id="pk-to"></p><div class="emo">${flare.EMOJI.map((e) => `<button type="button" role="menuitem" data-flare="${e}" aria-label="Send ${e}">${e}</button>`).join('')}${Object.entries(flare.CUSTOM).map(([k, v]) => `<button type="button" role="menuitem" data-flare="${k}" aria-label="Send ${esc(v.label)}"><img src="${v.src}" alt=""></button>`).join('')}</div></div>
+<div class="picker" id="picker" role="menu"><p id="pk-to"></p><div class="emo">${flare.EMOJI.map(emoBtn).join('')}${Object.entries(flare.CUSTOM).map(([k, v]) => `<button type="button" role="menuitem" data-flare="${k}" aria-label="Send ${esc(v.label)}"><img src="${v.src}" alt=""></button>`).join('')}</div>${flare.seasonal().map((x) => `<h3>${esc(x.name)}</h3><div class="emo">${x.emoji.map(emoBtn).join('')}</div>`).join('')}</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div><div id="flares" aria-hidden="true"></div>
 <script>${flare.BURST_JS}${CLIENT_JS.replace('POLL_MS', String(pollMs)).replace('TITLES', JSON.stringify(TABS.map(([k]) => BOARDS[k].title)))}</script></body></html>`;
 }
