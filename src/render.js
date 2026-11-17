@@ -19,19 +19,19 @@ const FONTS = '<link rel="preconnect" href="https://fonts.gstatic.com" crossorig
 
 const CSS = `
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:#060606;overflow:hidden}
+html,body{margin:0;height:100%;background:#101010;overflow:hidden}
 body{font-family:Inter,Verdana,sans-serif;color:#fff;-webkit-font-smoothing:antialiased}
 /* Near-black with a soft green glow top-left and a faint orange one top-right. */
 #stage{width:1920px;height:1080px;transform-origin:0 0;position:absolute;left:0;top:0;display:flex;flex-direction:column;
-  background:radial-gradient(ellipse 900px 520px at 0 0,rgba(113,166,43,.16),transparent 70%),radial-gradient(ellipse 800px 420px at 100% 0,rgba(244,156,32,.07),transparent 70%),#080808}
+  background:radial-gradient(ellipse 900px 520px at 0 0,rgba(113,166,43,.16),transparent 70%),radial-gradient(ellipse 800px 420px at 100% 0,rgba(244,156,32,.07),transparent 70%),#141414}
 #stage::before{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:linear-gradient(90deg,#71a62b,#ffdb05 65%,#f49c20)}
-header{height:124px;padding:12px 40px 0;display:flex;align-items:center;gap:32px;flex-shrink:0}
+header{height:88px;padding:10px 40px 0;display:flex;align-items:center;gap:32px;flex-shrink:0}
 .ht{flex-grow:1;display:flex;flex-direction:column;gap:6px;min-width:0}
 h1{margin:0;font-size:52px;font-weight:800;letter-spacing:-.02em;line-height:1.05}
 .hr{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
-main{flex-grow:1;padding:20px 40px 32px;display:flex;flex-direction:column;gap:24px;min-height:0}
+main{flex-grow:1;padding:12px 40px 32px;display:flex;flex-direction:column;gap:24px;min-height:0}
 /* Cards: dark gradient, hairline border, green-to-orange top edge. */
-.card{position:relative;background:linear-gradient(180deg,#151515,#0f0f0f);border:1px solid #232323;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.card{position:relative;background:linear-gradient(180deg,#222222,#1a1a1a);border:1px solid #2f2f2f;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
 .card::before{content:'';position:absolute;inset:-1px;border-radius:inherit;border-top:2px solid transparent;background:linear-gradient(90deg,#71a62b,#f49c20) border-box;-webkit-mask:linear-gradient(#000 0 0) padding-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.9;pointer-events:none}
 .lbl{font-size:18px;color:#eaeaea;margin:0;font-weight:700}
 h2.lbl{font-size:21px;letter-spacing:-.01em}
@@ -41,10 +41,10 @@ h2.lbl{font-size:21px;letter-spacing:-.01em}
 .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;height:196px;flex-shrink:0}
 .kpi{padding:24px 28px;display:flex;flex-direction:column;justify-content:space-between}
 .big{font-size:84px;line-height:1;font-weight:800;letter-spacing:-.03em;margin:0}
-.green{background:linear-gradient(160deg,rgba(113,166,43,.34),rgba(113,166,43,.06) 70%),#0f0f0f;border-color:rgba(113,166,43,.55)}
+.green{background:linear-gradient(160deg,rgba(113,166,43,.34),rgba(113,166,43,.06) 70%),#1a1a1a;border-color:rgba(113,166,43,.55)}
 .green::before{background:#71a62b border-box;opacity:1}
 .green .big{color:#8cc63f}
-.gold{background:linear-gradient(160deg,rgba(255,219,5,.26),rgba(244,156,32,.06) 70%),#0f0f0f;border-color:rgba(244,156,32,.55)}
+.gold{background:linear-gradient(160deg,rgba(255,219,5,.26),rgba(244,156,32,.06) 70%),#1a1a1a;border-color:rgba(244,156,32,.55)}
 .gold::before{background:linear-gradient(90deg,#ffdb05,#f49c20) border-box;opacity:1}
 .gold .big{color:#ffdb05}
 .panel{padding:24px 28px;display:flex;flex-direction:column;gap:14px;min-height:0}
@@ -61,7 +61,7 @@ h2.lbl{font-size:21px;letter-spacing:-.01em}
 .g{background:#71a62b}.y{background:#ffdb05}.o{background:#f49c20}.l{background:#eaeaea}
 .vg{background:linear-gradient(180deg,#71a62b,#5a881c)}
 .vo{background:linear-gradient(180deg,#ffdb05,#f49c20)}
-.cols{flex-grow:1;display:grid;gap:40px;align-items:end;border-bottom:1px solid #272727;padding:0 24px}
+.cols{flex-grow:1;display:grid;gap:40px;align-items:end;border-bottom:1px solid #333333;padding:0 24px}
 .col{display:flex;flex-direction:column;justify-content:flex-end}
 .num{font-size:18px;font-weight:700;text-align:center;margin:0 0 6px}
 .xl{display:grid;gap:40px;padding:0 24px}
@@ -73,7 +73,7 @@ table{width:100%;border-collapse:collapse;font-size:18px}
 th,td{padding:12px 0;text-align:right}
 th:first-child{text-align:left;font-weight:400;color:#eaeaea}
 thead th{color:#a1a1a1;font-size:15px;font-weight:400;padding-top:0}
-tbody tr{border-top:1px solid #272727}
+tbody tr{border-top:1px solid #333333}
 tr.now{color:#ffdb05;font-weight:700}tr.now th{color:#ffdb05;font-weight:700}
 .empty{flex-grow:1;display:flex;align-items:center;justify-content:center;color:#a1a1a1;font-size:22px;text-align:center;padding:24px}
 .tiles{display:flex;flex-direction:column;gap:16px;flex:1 1 0;min-height:0}
@@ -95,17 +95,17 @@ tr.now{color:#ffdb05;font-weight:700}tr.now th{color:#ffdb05;font-weight:700}
 .fc{min-height:0;position:relative}
 .fc svg{position:absolute;inset:0;width:100%;height:100%}
 .tight .row{padding:5px 0}.tight .row span:first-child{font-size:15px}.tight .row span:last-child{font-size:21px}
-.spark{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:minmax(0,1fr);gap:6px;align-items:end;height:48px;border-bottom:1px solid #272727}
+.spark{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:minmax(0,1fr);gap:6px;align-items:end;height:48px;border-bottom:1px solid #333333}
 .tile .spark{height:auto;flex:1 1 0;min-height:36px}
 .spark div{border-radius:3px 3px 0 0}
 .pw{background:#474747}
 .wkn{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;font-size:12px;color:#a1a1a1;text-align:center}
 .wkn span:last-child{color:#fff;font-weight:700}
-.row{display:flex;align-items:baseline;justify-content:space-between;padding:12px 0;border-top:1px solid #272727}
+.row{display:flex;align-items:baseline;justify-content:space-between;padding:12px 0;border-top:1px solid #333333}
 .row span:first-child{color:#eaeaea;font-size:16px}.row span:last-child{font-size:26px;font-weight:700}
 /* Tucked inside the bottom-right card's corner, well clear of the screen edge (TVs can crop
    the outer pixels). That card gets extra right padding so nothing sits under the code. */
-.qr{position:absolute;right:52px;bottom:44px;line-height:0;padding:3px;border:2px solid #71a62b;border-radius:6px;background:#0f0f0f}
+.qr{position:absolute;right:52px;bottom:44px;line-height:0;padding:8px;border:2px solid #71a62b;border-radius:6px;background:#1a1a1a}
 .qr svg{display:block}
 .qr::before{content:'SCAN';position:absolute;left:-10px;right:-10px;bottom:100%;margin-bottom:5px;text-align:center;font-size:11px;line-height:1;font-weight:700;letter-spacing:.22em;text-indent:.22em;color:#71a62b}
 .hasqr>section:last-child>.card:last-child{padding-right:96px}
@@ -168,7 +168,7 @@ function salesBoard(s, win) {
   const isLight = (d, i) => !past(i) && dMax >= 4 && d.n < dMax / 2;
   const fade = (i) => (past(i) ? ';opacity:.3' : '');
   const cellH = reps.length > 5 ? 28 : 32;
-  const mHead = `<span></span>${g.days.map((d, i) => `<span class="mh"${isToday(i) ? ' style="background:#ffdb05;color:#121212;border-radius:4px"' : past(i) ? ' style="color:#474747"' : ''}>${DAYS[i]} ${dnum(d.day)}</span>`).join('')}<span class="mh" style="color:#a1a1a1">Total</span>`;
+  const mHead = `<span></span>${g.days.map((d, i) => `<span class="mh"${isToday(i) ? ' style="background:#ffdb05;color:#1d1d1d;border-radius:4px"' : past(i) ? ' style="color:#474747"' : ''}>${DAYS[i]} ${dnum(d.day)}</span>`).join('')}<span class="mh" style="color:#a1a1a1">Total</span>`;
   const mBody = reps.map((r, ri) => `<span class="mr"${r.other ? ' style="color:#a1a1a1"' : ''}>${esc(r.name)}</span>${repCells[ri].map((v, i) => (v
     ? `<span class="mc" style="height:${cellH}px;background:rgba(113,166,43,${(0.18 + 0.72 * (v / cMaxM)).toFixed(2)})${fade(i)}">${v}</span>`
     : `<span class="mc" style="height:${cellH}px;color:#474747;font-weight:400${fade(i)}">·</span>`)).join('')}<span class="mt">${r.n}</span>`).join('');
@@ -229,7 +229,7 @@ ${newTile}
   let grid = '';
   for (let v = step; v < scaleMax; v += step) {
     const y = Math.round((v / scaleMax) * plotH);
-    grid += `<div aria-hidden="true" style="position:absolute;left:0;right:0;bottom:${y}px;border-top:1px dashed #272727"></div><span aria-hidden="true" style="position:absolute;left:0;bottom:${y + 6}px;font-size:13px;color:#a1a1a1">${money(v).replace('.00M', 'M')}</span>`;
+    grid += `<div aria-hidden="true" style="position:absolute;left:0;right:0;bottom:${y}px;border-top:1px dashed #333333"></div><span aria-hidden="true" style="position:absolute;left:0;bottom:${y + 6}px;font-size:13px;color:#a1a1a1">${money(v).replace('.00M', 'M')}</span>`;
   }
   const n = curM;
   // Columns sit edge to edge (spacing comes from padding), so month i's center is at (i + 0.5) / n.
@@ -237,7 +237,7 @@ ${newTile}
   const cols = p.months.map((m, i) => {
     const hs = Math.round((m.std / scaleMax) * plotH), hv = Math.round((m.svc / scaleMax) * plotH);
     const mtd = i === curM - 1;
-    return `<div class="col" style="padding:0 ${colPad}px"><p class="num" style="font-size:14px;position:relative;z-index:1;text-shadow:0 0 4px #121212,0 0 4px #121212${mtd ? ';color:#ffdb05' : ''}">${money(m.std + m.svc)}</p>${hv ? `<div class="y" style="height:${hv}px;border-radius:4px 4px 0 0"></div>` : ''}${hs ? `<div class="vg" style="height:${hs}px;${hv ? '' : 'border-radius:4px 4px 0 0'}"></div>` : ''}</div>`;
+    return `<div class="col" style="padding:0 ${colPad}px"><p class="num" style="font-size:14px;position:relative;z-index:1;text-shadow:0 0 4px #1d1d1d,0 0 4px #1d1d1d${mtd ? ';color:#ffdb05' : ''}">${money(m.std + m.svc)}</p>${hv ? `<div class="y" style="height:${hv}px;border-radius:4px 4px 0 0"></div>` : ''}${hs ? `<div class="vg" style="height:${hs}px;${hv ? '' : 'border-radius:4px 4px 0 0'}"></div>` : ''}</div>`;
   }).join('');
 
   // Linear trend (least squares) over completed months only; the month-to-date month is left out.
@@ -261,7 +261,7 @@ ${newTile}
   const counts = p.months.map((m, i) => `<p style="margin:0;text-align:center;font-weight:700;font-size:16px${i === n - 1 ? ';color:#ffdb05' : ''}">${m.nStd + m.nSvc}</p>`).join('');
   const left = `<div class="card panel"><div class="ph"><h2 class="lbl">Closed-won revenue by month</h2><span class="key"><span class="sw g"></span>Standard pipeline</span><span class="key"><span class="sw y"></span>Service (CFSS)</span>${trendKey}</div>
 <div style="position:relative;height:${plotH + 30}px;display:flex;padding-left:72px">${grid}
-<div style="position:relative;flex-grow:1;display:grid;grid-template-columns:repeat(${n},minmax(0,1fr));gap:0;align-items:end;border-bottom:1px solid #272727">${cols}${trendSvg}</div></div>
+<div style="position:relative;flex-grow:1;display:grid;grid-template-columns:repeat(${n},minmax(0,1fr));gap:0;align-items:end;border-bottom:1px solid #333333">${cols}${trendSvg}</div></div>
 <div style="display:grid;grid-template-columns:72px repeat(${n},minmax(0,1fr));column-gap:0;row-gap:8px;align-items:center"><span></span>${monthLbls}<span style="font-size:13px;color:#a1a1a1">Deals won</span>${counts}</div>
 <p class="sub" style="font-size:13px">* ${MONTHS[n - 1]} is month to date.</p></div>`;
 
@@ -318,8 +318,8 @@ function flowChart(a, b, win, W) {
   const ticks = win.weeks.filter((w, i) => i * 7 <= n - 1).map((w, i) => `<line x1="${x(i * 7)}" x2="${x(i * 7)}" y1="${y1}" y2="${y1 + 4}" stroke="#474747"/><text x="${x(i * 7)}" y="${H - 4}" fill="#a1a1a1" font-size="12" text-anchor="${i ? 'middle' : 'start'}">${md(w)}</text>`).join('');
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Running totals over the last 4 weeks: ${esc(a.label)} ${A[n - 1]}, ${esc(b.label)} ${B[n - 1]}" font-family="Inter,Verdana,sans-serif">
 <defs><linearGradient id="fg-${a.key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${FLOW_IN}" stop-opacity=".55"/><stop offset="1" stop-color="${FLOW_IN}" stop-opacity=".15"/></linearGradient></defs>
-<line x1="${x0}" x2="${x1}" y1="${y1}" y2="${y1}" stroke="#272727"/>
-<polygon points="${area(A)}" fill="url(#fg-${a.key})"/><polygon points="${area(B)}" fill="#2e4219"/>
+<line x1="${x0}" x2="${x1}" y1="${y1}" y2="${y1}" stroke="#333333"/>
+<polygon points="${area(A)}" fill="url(#fg-${a.key})"/><polygon points="${area(B)}" fill="#354d1d"/>
 <polyline points="${line(A)}" fill="none" stroke="${FLOW_IN}" stroke-width="3.5" stroke-linejoin="round"/>
 <polyline points="${line(B)}" fill="none" stroke="${FLOW_OUT}" stroke-width="3.5" stroke-linejoin="round"/>
 ${bracket}<text x="${xe + (bracket ? 24 : 10)}" y="${mid + 6}" fill="#fff" font-size="17" font-weight="700">${gap > 0 ? '+' : ''}${gap}</text>
@@ -343,12 +343,12 @@ function lineChart(pr) {
   const y = (v) => Math.round(380 - (v / niceTop) * 340);
   let grid = '';
   for (let v = 0; v <= niceTop; v += niceTop / 4) {
-    grid += `<line x1="52" y1="${y(v)}" x2="752" y2="${y(v)}" stroke="#272727" ${v ? 'stroke-dasharray="4 6"' : ''}/><text x="40" y="${y(v) + 5}" fill="#a1a1a1" font-size="14" text-anchor="end">${Math.round(v)}</text>`;
+    grid += `<line x1="52" y1="${y(v)}" x2="752" y2="${y(v)}" stroke="#333333" ${v ? 'stroke-dasharray="4 6"' : ''}/><text x="40" y="${y(v) + 5}" fill="#a1a1a1" font-size="14" text-anchor="end">${Math.round(v)}</text>`;
   }
   const last = pr.lastCum.map((v, i) => `${xs[i]},${y(v)}`).join(' ');
   const upto = pr.thisCum.slice(0, pr.todayIdx + 1);
   const cur = upto.map((v, i) => `${xs[i]},${y(v)}`).join(' ');
-  const dots = upto.map((v, i) => `<circle cx="${xs[i]}" cy="${y(v)}" r="8" fill="#71a62b" stroke="#121212" stroke-width="3"/><text x="${xs[i]}" y="${y(v) - 16}" fill="#fff" font-size="18" font-weight="700" text-anchor="middle">${v}</text>`).join('');
+  const dots = upto.map((v, i) => `<circle cx="${xs[i]}" cy="${y(v)}" r="8" fill="#71a62b" stroke="#1d1d1d" stroke-width="3"/><text x="${xs[i]}" y="${y(v) - 16}" fill="#fff" font-size="18" font-weight="700" text-anchor="middle">${v}</text>`).join('');
   const lastEnd = `<text x="${xs[6]}" y="${y(pr.lastCum[6]) - 14}" fill="#a1a1a1" font-size="15" text-anchor="middle">${pr.lastCum[6]}</text>`;
   const days = DAYS.map((d, i) => `<text x="${xs[i]}" y="412" fill="#a1a1a1" font-size="15" text-anchor="middle">${d}</text>`).join('');
   return `<svg viewBox="0 0 770 420" role="img" aria-label="Running total of projects created this week versus last week" style="width:100%;flex-grow:1;min-height:0" font-family="Inter,Verdana,sans-serif">${grid}

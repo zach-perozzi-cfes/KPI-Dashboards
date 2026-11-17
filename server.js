@@ -116,7 +116,7 @@ function boardQr(req, board) {
     if (qrCache.size > 30) qrCache.clear();
     // Inverted code: CFES orange modules on the card's near-black (about 8:1 contrast). The border
     // matches the card, so only the ~46px pattern shows, inside a green border. iPhone Camera and Google Lens read inverted codes.
-    qrCache.set(url, qrSvg(url, { level: 'L', scale: 1.6, quiet: 1, dark: '#f49c20', light: '#0f0f0f', label: 'Scan to open this screen on your phone' }));
+    qrCache.set(url, qrSvg(url, { level: 'L', scale: 1.6, quiet: 1, dark: '#f49c20', light: '#1a1a1a', label: 'Scan to open this screen on your phone' }));
   }
   return qrCache.get(url);
 }
@@ -162,7 +162,7 @@ const server = http.createServer((req, res) => {
   }
   if (board === 'index') {
     const q = url.search ? url.search : '';
-    return send(200, 'text/html; charset=utf-8', `<!doctype html><meta charset="utf-8"><title>CFES monitors</title><body style="font-family:Verdana;background:#090909;color:#fff;padding:40px"><h1>CFES office monitors</h1><ul>${Object.entries(BOARDS).map(([k, b]) => `<li><a style="color:#71a62b" href="/${k}${q}">${b.title}</a></li>`).join('')}</ul></body>`);
+    return send(200, 'text/html; charset=utf-8', `<!doctype html><meta charset="utf-8"><title>CFES monitors</title><body style="font-family:Verdana;background:#141414;color:#fff;padding:40px"><h1>CFES office monitors</h1><ul>${Object.entries(BOARDS).map(([k, b]) => `<li><a style="color:#71a62b" href="/${k}${q}">${b.title}</a></li>`).join('')}</ul></body>`);
   }
   return send(404, 'text/plain', 'Not found');
 });
