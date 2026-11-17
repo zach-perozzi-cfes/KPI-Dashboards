@@ -38,7 +38,10 @@ h2.lbl{font-size:21px;letter-spacing:-.01em}
 .sub{font-size:15px;color:#a1a1a1;margin:0}
 .up{color:#71a62b;font-weight:700}.dn{color:#f49c20;font-weight:700}.flat{color:#a1a1a1;font-weight:700}
 .warn{color:#f49c20;font-weight:700}
-.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;height:196px;flex-shrink:0}
+/* Top row on Inside Sales and Pipeline: label + 213px cards, the same as Operations' first
+   row, so the card edges line up across neighbouring monitors. */
+.sec{display:flex;flex-direction:column;gap:10px;flex-shrink:0}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;height:213px;flex-shrink:0}
 .kpi{padding:24px 28px;display:flex;flex-direction:column;justify-content:space-between}
 .big{font-size:84px;line-height:1;font-weight:800;letter-spacing:-.03em;margin:0}
 .green{background:linear-gradient(160deg,rgba(113,166,43,.34),rgba(113,166,43,.06) 70%),#1a1a1a;border-color:rgba(113,166,43,.55)}
@@ -136,12 +139,12 @@ function waiting(msg = 'Waiting for Zoho data…') { return `<div class="card em
 function salesBoard(s, win) {
   if (!s) return waiting();
   const [, , l2, l3] = s.leadsWk; const [, , c2, c3] = s.callsWk; const [, , m2, m3] = s.mtgWk;
-  const kpis = `<section class="kpis">
+  const kpis = `<div class="sec"><p class="grp"><i style="background:#71a62b"></i>This week</p><section class="kpis">
 <div class="card kpi"><p class="lbl">Leads created</p><p class="big">${l3}</p><p class="sub">${delta(l3, l2)} · 4-wk avg ${fmtAvg(avg(s.leadsWk))}</p></div>
 <div class="card kpi"><p class="lbl">Calls logged</p><p class="big">${c3}</p><p class="sub">${delta(c3, c2)} · ${s.callsOut} out / ${s.callsIn} in</p></div>
 <div class="card kpi"><p class="lbl">Meetings this week</p><p class="big">${m3}</p><p class="sub">${delta(m3, m2)} · 4-wk avg ${fmtAvg(avg(s.mtgWk))}</p></div>
 <div class="card kpi green"><p class="lbl">Meetings booked · next week</p><p class="big">${s.nextTotal}</p><p class="sub">On the calendar for ${esc(weekLabel(win.nextWs).replace(/, \d{4}$/, ''))}</p></div>
-</section>`;
+</section></div>`;
 
   // Tallest bar + its number label must fit the 340px chart row (header, gaps, day labels): ~170px.
   const plotH = 170;
@@ -215,12 +218,12 @@ function pipelineBoard(p, win) {
     : `<div class="card kpi"><p class="lbl">New deals · ${MONTHS[curM - 1]} to date</p><p class="big">–</p><p class="sub">waiting for Zoho</p></div>`;
   const avgStd = p.ytdStdN ? p.ytdStdAmt / p.ytdStdN : 0;
   const avgSvc = p.ytdSvcN ? p.ytdSvcAmt / p.ytdSvcN : 0;
-  const kpis = `<section class="kpis">
+  const kpis = `<div class="sec"><p class="grp"><i style="background:#71a62b"></i>Month &amp; year to date</p><section class="kpis">
 ${newTile}
 <div class="card kpi gold"><p class="lbl">Avg deal size · ${win.today.slice(0, 4)}</p><p class="big" style="font-size:76px">${money(avgStd)}</p><p class="sub">Standard pipeline, ${p.ytdStdN} won · service avg ${money(avgSvc)}</p></div>
 <div class="card kpi"><p class="lbl">Closed won · ${MONTHS[curM - 1]} to date</p><p class="big" style="font-size:76px">${money(p.mtdAmt)}</p><p class="sub">${p.mtdN} deals · ${p.mtdStdN} standard, ${p.mtdSvcN} service</p></div>
 <div class="card kpi green"><p class="lbl">Closed won · ${win.today.slice(0, 4)}</p><p class="big" style="font-size:76px">${money(p.ytdAmt)}</p><p class="sub">${p.ytdN} deals${p.prevAmt != null ? ` · ${MONTHS[curM - 2]} was ${money(p.prevAmt)}` : ''}</p></div>
-</section>`;
+</section></div>`;
 
   const plotH = 340;
   const maxTot = Math.max(1, ...p.months.map((m) => m.std + m.svc));
