@@ -117,8 +117,12 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;te
 .emo button{font-size:30px;line-height:1;padding:9px 0;text-align:center;border-radius:10px;font-family:'Noto Color Emoji','Apple Color Emoji','Segoe UI Emoji',sans-serif}
 .emo button:active{background:#333333}
 .emo img{height:34px;width:auto;display:block;margin:-2px auto}
-.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 80px);transform:translateX(-50%);z-index:8;background:#181818;border:1px solid #333333;padding:9px 16px;border-radius:18px;font-size:13px;white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none}
-.toast.show{opacity:1}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 80px);transform:translate(-50%,8px);z-index:8;display:flex;align-items:center;gap:10px;background:#181818;border:1px solid #333333;padding:9px 16px;border-radius:18px;font-size:13px;white-space:nowrap;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.55)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast i{font-style:normal;font-size:24px;line-height:1;font-family:'Noto Color Emoji','Apple Color Emoji','Segoe UI Emoji',sans-serif}
+.toast img{height:26px;width:auto;display:block}
+.toast b{display:block;color:#fff;font-size:13px}
+.toast small{display:block;color:#a1a1a1;font-size:12px}
 .login{margin:auto;max-width:340px;padding:32px 24px;text-align:center}
 .login img{height:44px;margin-bottom:24px}
 .login h1{font-size:20px;margin:0 0 12px}
@@ -328,9 +332,16 @@ const CLIENT_JS = `
       .catch(function(e){if(e!==0){sht.textContent='Couldn\\u2019t load';shb.innerHTML='<p class="empty">Check your connection and try again.</p>';}});
   }
   function closeDrill(){sheet.classList.remove('open');sheet.setAttribute('aria-hidden','true');}
-  // FLARE: pick an emoji, it floats across the TV for the screen you're on (and on this phone).
+  // FLARE: pick an emoji, it floats across the TV for the screen you're on. The phone only shows a
+  // "sent" notice; the flare itself plays on the TV.
   var fab=document.getElementById('fab'),pk=document.getElementById('picker'),toastEl=document.getElementById('toast'),titles=TITLES;
-  function toast(t){toastEl.textContent=t;toastEl.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(function(){toastEl.classList.remove('show');},2400);}
+  function toast(t,sub,emoji){
+    toastEl.textContent='';
+    if(emoji){var ic;if(FLARE_PICS[emoji]){ic=document.createElement('img');ic.src=FLARE_PICS[emoji];ic.alt='';}else{ic=document.createElement('i');ic.textContent=emoji;}toastEl.appendChild(ic);}
+    var tx=document.createElement('span'),b=document.createElement('b');b.textContent=t;tx.appendChild(b);
+    if(sub){var sm=document.createElement('small');sm.textContent=sub;tx.appendChild(sm);}
+    toastEl.appendChild(tx);toastEl.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(function(){toastEl.classList.remove('show');},emoji?3000:2400);
+  }
   function setPicker(open){
     pk.classList.toggle('open',open);fab.setAttribute('aria-expanded',open?'true':'false');
     if(open)document.getElementById('pk-to').textContent='Float it across the '+titles[Math.max(0,cur)]+' TV';
@@ -342,7 +353,7 @@ const CLIENT_JS = `
       .then(function(r){
         if(r.status===401){location.reload();return;}
         return r.json().then(function(j){
-          if(r.ok){flareBurst(emoji);toast('Sent to the '+titles[i]+' TV'+(FLARE_IMG[emoji]?'':' '+emoji));}
+          if(r.ok)toast('Flare sent','to the '+titles[i]+' TV',emoji);
           else toast(j&&j.error?j.error:'Couldn’t send');
         });
       }).catch(function(){toast('Couldn’t send. Check your connection.');});
@@ -384,15 +395,15 @@ function renderMobile(metrics, sources, pollMs, { fragment = false } = {}) {
   if (fragment) return `<div id="strip-in">${panes(metrics)}</div><div id="stats-in">${stats(sources)}</div>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow">
-<meta name="theme-color" content="#141414"><title>CFES KPIs</title>${FONTS}${flare.FONT_LINK}<style>${CSS}${flare.CSS}</style></head><body>
+<meta name="theme-color" content="#141414"><title>CFES KPIs</title>${FONTS}${flare.FONT_LINK}<style>${CSS}</style></head><body>
 <header class="top"><div class="brand"><img src="/logo.png" alt="CFES"><p id="st"></p></div>
 <nav class="tabs" role="tablist">${TABS.map(([k, t]) => `<button type="button" role="tab" aria-controls="p-${k}" aria-selected="false">${t}</button>`).join('')}<span class="ind"></span></nav></header>
 <main id="strip">${panes(metrics)}</main><div id="stats" hidden>${stats(sources)}</div>
 <div id="sheet" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="sht"><div class="shh"><button type="button" id="close" aria-label="Back">‹ Back</button><h2 id="sht"></h2></div><div id="shb"></div></div>
 <button type="button" class="fab" id="fab" aria-haspopup="true" aria-expanded="false" aria-controls="picker">FLARE</button>
 <div class="picker" id="picker" role="menu"><p id="pk-to"></p><div class="emo">${flare.EMOJI.map(emoBtn).join('')}${Object.entries(flare.CUSTOM).map(([k, v]) => `<button type="button" role="menuitem" data-flare="${k}" aria-label="Send ${esc(v.label)}"><img src="${v.src}" alt=""></button>`).join('')}</div>${flare.seasonal().map((x) => `<h3>${esc(x.name)}</h3><div class="emo">${x.emoji.map(emoBtn).join('')}</div>`).join('')}</div>
-<div class="toast" id="toast" role="status" aria-live="polite"></div><div id="flares" aria-hidden="true"></div>
-<script>${flare.BURST_JS}${CLIENT_JS.replace('POLL_MS', String(pollMs)).replace('TITLES', JSON.stringify(TABS.map(([k]) => BOARDS[k].title)))}</script></body></html>`;
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>var FLARE_PICS=${JSON.stringify(Object.fromEntries(Object.entries(flare.CUSTOM).map(([k, v]) => [k, v.src])))};${CLIENT_JS.replace('POLL_MS', String(pollMs)).replace('TITLES', JSON.stringify(TABS.map(([k]) => BOARDS[k].title)))}</script></body></html>`;
 }
 
 const MAX_RECS = 500;
