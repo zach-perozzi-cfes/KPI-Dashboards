@@ -8,11 +8,11 @@ Three live KPI boards for the office TVs (Yodeck players), fed directly by Zoho 
 | `/middle` | Sales Pipeline | Open deals by stage, closed-won by month (Zoho CRM Deals) |
 | `/right` | Operations | Projects created, designs, permits, installs (Zoho Projects tasks); incoming and closed service tickets (Zoho Desk) |
 
-Each board is a fixed 1920×1080 layout that scales to fit any screen. The look: near-black with a soft green glow, a green-to-orange gradient strip across the top and on each card, Inter for text (from Google Fonts; Verdana if it can't load).
+Each board is a fixed 1920×1080 layout that scales to fit any screen. The look: plain near-black, a green-to-orange gradient strip across the top and on each card, Inter for text (from Google Fonts; Verdana if it can't load).
 
 **Phone view (`/m`):** the same three boards as swipeable screens (swipe left/right or tap a tab; each screen scrolls up and down). Tap any number, bar, row or grid cell to see the records behind it: name, owner, date, amount, and a link to the record in Zoho. Each list uses the same rule as the number on the board, so it always adds up. See [Phone view](#phone-view).
 
-**Data schedule:** the server pulls Zoho once when it starts, then only at the times in `REFRESH_TIMES` (Eastern time, default `07:00,12:00,16:00`), so three pulls a day. The board headers show just the board name (plus "refresh delayed" when data is late); `/status?key=…` shows when each source was last pulled. The pages check this server's cached copy every `POLL_SECONDS` (default 300) and swap in new numbers without a full reload, because Yodeck does not reload a lone web page on its own. Those checks never call Zoho.
+**Data schedule:** the server pulls Zoho once when it starts, then only at the times in `REFRESH_TIMES` (Eastern time; the code default is `07:00,12:00,16:00`, and `render.yaml` sets every 30 minutes from 6:00 AM to 7:00 PM, 27 pulls a day). The board headers show just the board name (plus "refresh delayed" when data is late); `/status?key=…` shows when each source was last pulled. The pages check this server's cached copy every `POLL_SECONDS` (default 300) and swap in new numbers without a full reload, because Yodeck does not reload a lone web page on its own. Those checks never call Zoho.
 
 No dependencies: Node 20+, `node server.js`.
 

@@ -15,7 +15,7 @@ const TABS = [['left', 'Inside Sales'], ['middle', 'Pipeline'], ['right', 'Opera
 const CSS = `
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:#141414;color:#fff;font-family:Inter,Verdana,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
-html{background:radial-gradient(ellipse 120% 320px at 0 0,rgba(113,166,43,.16),transparent 70%),#141414}
+html{background:#141414}
 body{background:transparent}
 body{display:flex;flex-direction:column;height:100dvh}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;text-align:inherit;cursor:pointer}
@@ -81,7 +81,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;te
 .row b{font-size:18px;color:#fff}
 .hint{text-align:center;font-size:11px;color:#474747;margin:4px 0 0}
 .empty{color:#a1a1a1;font-size:13px;padding:16px 0;text-align:center}
-#sheet{position:fixed;inset:0;background:radial-gradient(ellipse 120% 280px at 0 0,rgba(113,166,43,.12),transparent 70%),#141414;z-index:10;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .22s ease;visibility:hidden}
+#sheet{position:fixed;inset:0;background:#141414;z-index:10;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .22s ease;visibility:hidden}
 #sheet.open{transform:none;visibility:visible}
 .shh{flex-shrink:0;position:relative;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 14px) 12px 12px;border-bottom:1px solid #2a2a2a}
 .shh::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#71a62b,#ffdb05 65%,#f49c20)}

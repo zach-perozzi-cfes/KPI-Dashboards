@@ -23,7 +23,7 @@ html,body{margin:0;height:100%;background:#101010;overflow:hidden}
 body{font-family:Inter,Verdana,sans-serif;color:#fff;-webkit-font-smoothing:antialiased}
 /* Near-black with a soft green glow top-left and a faint orange one top-right. */
 #stage{width:1920px;height:1080px;transform-origin:0 0;position:absolute;left:0;top:0;display:flex;flex-direction:column;
-  background:radial-gradient(ellipse 900px 520px at 0 0,rgba(113,166,43,.16),transparent 70%),radial-gradient(ellipse 800px 420px at 100% 0,rgba(244,156,32,.07),transparent 70%),#141414}
+  background:#141414}
 #stage::before{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:linear-gradient(90deg,#71a62b,#ffdb05 65%,#f49c20)}
 header{height:88px;padding:10px 40px 0;display:flex;align-items:center;gap:32px;flex-shrink:0}
 .ht{flex-grow:1;display:flex;flex-direction:column;gap:6px;min-width:0}
