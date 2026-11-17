@@ -1,6 +1,6 @@
 'use strict';
 // Server-side HTML for the three 1920x1080 monitor boards (CFES brand: green #71a62b, yellow #ffdb05,
-// orange #f49c20 on near-black, with a green-to-orange gradient accent; Inter + JetBrains Mono).
+// orange #f49c20 on near-black, with a green-to-orange gradient accent; Inter).
 
 const { addDays } = require('./metrics');
 const { maxGapHours } = require('./schedule');
@@ -14,8 +14,8 @@ const BOARDS = {
 const { MONTHS, DAYS, esc, sum, md, dnum, weekLabel, money, delta, avg, fmtAvg, dayTimeFmt } = require('./format');
 const flare = require('./flare');
 
-// Inter for text, JetBrains Mono for the clock; Verdana if Google Fonts can't load.
-const FONTS = '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">';
+// Inter for text; Verdana if Google Fonts can't load.
+const FONTS = '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">';
 
 const CSS = `
 *{box-sizing:border-box}
@@ -29,7 +29,6 @@ header{height:124px;padding:12px 40px 0;display:flex;align-items:center;gap:32px
 .ht{flex-grow:1;display:flex;flex-direction:column;gap:6px;min-width:0}
 h1{margin:0;font-size:52px;font-weight:800;letter-spacing:-.02em;line-height:1.05}
 .hr{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
-.clock{margin:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:68px;font-weight:700;line-height:1;letter-spacing:-.02em}
 main{flex-grow:1;padding:20px 40px 32px;display:flex;flex-direction:column;gap:24px;min-height:0}
 /* Cards: dark gradient, hairline border, green-to-orange top edge. */
 .card{position:relative;background:linear-gradient(180deg,#151515,#0f0f0f);border:1px solid #232323;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
@@ -112,19 +111,17 @@ tr.now{color:#ffdb05;font-weight:700}tr.now th{color:#ffdb05;font-weight:700}
 .hasqr>section:last-child>.card:last-child{padding-right:96px}
 `;
 
-// The header clock: drawn by the server, then kept current by the page (Eastern time).
-const clockFmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' });
 function header(board, metrics, sources, opts = {}) {
   const b = BOARDS[board];
   const fetched = b.sources.map((k) => sources[k] && sources[k].fetchedAt).filter(Boolean).sort()[0];
   const failing = b.sources.filter((k) => sources[k] && sources[k].error);
   // Pulls run on a fixed schedule, so "late" means older than the longest gap between pulls plus an hour.
   const stale = fetched && Date.now() - new Date(fetched).getTime() > (maxGapHours() + 1) * 3600 * 1000;
-  // Under the clock only when something is wrong; normally the clock stands alone.
+  // Shown only when something is wrong; normally the header is just the board name.
   const status = !fetched ? 'waiting for first sync'
     : (failing.length || stale) ? `<span class="warn">refresh delayed</span> · updated ${dayTimeFmt.format(new Date(fetched))}` : '';
   return `<header><div class="ht"><h1>${esc(b.title)}</h1></div>
-<div class="hr"><p class="clock" data-clock>${clockFmt.format(new Date())}</p>${status ? `<p class="sub">${status}</p>` : ''}</div></header>`;
+${status ? `<div class="hr"><p class="sub">${status}</p></div>` : ''}</header>`;
 }
 
 // Today's phone sign-in code for this screen, tiny in the bottom-right corner (see src/session.js).
@@ -398,9 +395,6 @@ const CLIENT_JS = `
   var stage=document.getElementById('stage');
   function fit(){var s=Math.min(innerWidth/1920,innerHeight/1080);stage.style.transform='scale('+s+')';stage.style.left=((innerWidth-1920*s)/2)+'px';stage.style.top=((innerHeight-1080*s)/2)+'px';}
   addEventListener('resize',fit);fit();
-  var clk=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit'});
-  function tick(){var c=document.querySelector('[data-clock]');if(c)c.textContent=clk.format(new Date());}
-  setInterval(tick,5000);
   var fails=0,loadedAt=Date.now();
   function poll(){
     var u=location.pathname+(location.search?location.search+'&':'?')+'fragment=1';
