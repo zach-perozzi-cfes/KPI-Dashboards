@@ -20,19 +20,19 @@ body{background:transparent}
 body{display:flex;flex-direction:column;height:100dvh}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;text-align:inherit;cursor:pointer}
 .top{flex-shrink:0;position:relative;border-bottom:1px solid #2a2a2a;padding:calc(env(safe-area-inset-top) + 12px) 16px 0}
-.top::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#71a62b,#ffdb05 65%,#f49c20)}
+.top::before{content:'';position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,rgba(113,166,43,.6),rgba(244,156,32,.45));opacity:.8}
 .brand{display:flex;align-items:center;gap:10px}
 .brand img{height:28px;width:auto}
 .brand p{margin:0 0 0 auto;font-size:11px;color:#a1a1a1;text-align:right;line-height:1.35}
 .tabs{display:grid;grid-template-columns:repeat(3,1fr);margin-top:10px;position:relative}
 .tabs button{padding:10px 0 12px;text-align:center;font-size:14px;font-weight:700;color:#8a8a8a}
 .tabs button[aria-selected=true]{color:#fff}
-.ind{position:absolute;bottom:-1px;left:0;width:33.333%;height:3px;background:linear-gradient(90deg,#71a62b,#f49c20);border-radius:2px;transition:transform .08s linear}
+.ind{position:absolute;bottom:-1px;left:0;width:33.333%;height:3px;background:#71a62b;opacity:.85;border-radius:2px;transition:transform .08s linear}
 #strip{flex-grow:1;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none}
 #strip::-webkit-scrollbar{display:none}
 .pane{flex:0 0 100%;width:100%;scroll-snap-align:start;scroll-snap-stop:always;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;padding:16px 16px calc(env(safe-area-inset-bottom) + 88px);display:flex;flex-direction:column;gap:14px}
 .card{position:relative;background:linear-gradient(180deg,#222222,#1a1a1a);border:1px solid #2f2f2f;border-radius:14px;padding:14px 16px;display:block;width:100%}
-.card::before{content:'';position:absolute;inset:-1px;border-radius:inherit;border-top:2px solid transparent;background:linear-gradient(90deg,#71a62b,#f49c20) border-box;-webkit-mask:linear-gradient(#000 0 0) padding-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.9;pointer-events:none}
+.card::before{content:'';position:absolute;inset:-1px;border-radius:inherit;border-top:2px solid transparent;background:linear-gradient(90deg,#71a62b,#f49c20) border-box;-webkit-mask:linear-gradient(#000 0 0) padding-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.35;pointer-events:none}
 .tap{display:block;width:100%;border-radius:8px}
 .tap:active{background:rgba(255,255,255,.06)}
 .card.tap:active{background:#262626}
@@ -41,8 +41,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;te
 .big{margin:6px 0 4px;font-size:38px;line-height:1;font-weight:800;letter-spacing:-.03em}
 .sub{margin:0;font-size:11.5px;color:#a1a1a1;line-height:1.4}
 .up{color:#71a62b;font-weight:700}.dn{color:#f49c20;font-weight:700}.flat{color:#a1a1a1;font-weight:700}.warn{color:#f49c20;font-weight:700}
-.green{background:linear-gradient(160deg,rgba(113,166,43,.34),rgba(113,166,43,.06) 70%),#1a1a1a;border-color:rgba(113,166,43,.55)}.green::before{background:#71a62b border-box;opacity:1}.green .big{color:#8cc63f}
-.gold{background:linear-gradient(160deg,rgba(255,219,5,.26),rgba(244,156,32,.06) 70%),#1a1a1a;border-color:rgba(244,156,32,.55)}.gold::before{background:linear-gradient(90deg,#ffdb05,#f49c20) border-box;opacity:1}.gold .big{color:#ffdb05}
+.green{background:linear-gradient(160deg,rgba(113,166,43,.16),rgba(113,166,43,.03) 70%),#1a1a1a;border-color:rgba(113,166,43,.35)}.green::before{background:#71a62b border-box;opacity:.6}.green .big{color:#8cc63f}
+.gold{background:linear-gradient(160deg,rgba(244,156,32,.12),rgba(244,156,32,.03) 70%),#1a1a1a;border-color:rgba(244,156,32,.35)}.gold::before{background:#e0a33a border-box;opacity:.6}.gold .big{color:#ffdb05}
 .ph{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
 .ph h2{margin:0;font-size:15px;flex-grow:1}
 .ph .sub{white-space:nowrap}
@@ -84,7 +84,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;te
 #sheet{position:fixed;inset:0;background:#141414;z-index:10;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .22s ease;visibility:hidden}
 #sheet.open{transform:none;visibility:visible}
 .shh{flex-shrink:0;position:relative;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 14px) 12px 12px;border-bottom:1px solid #2a2a2a}
-.shh::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#71a62b,#ffdb05 65%,#f49c20)}
+.shh::before{content:'';position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,rgba(113,166,43,.6),rgba(244,156,32,.45));opacity:.8}
 .shh h2{margin:0;font-size:16px;flex-grow:1;line-height:1.3}
 .shh button{font-size:14px;font-weight:700;color:#ffdb05;padding:6px 8px;white-space:nowrap}
 #shb{flex-grow:1;overflow-y:auto;padding:16px 16px calc(env(safe-area-inset-bottom) + 32px);display:flex;flex-direction:column;gap:14px}
@@ -107,7 +107,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;te
 .recs a .tx::after{content:''}
 .chev{color:#474747;font-size:16px}
 /* FLARE: floating button, emoji picker, confirmation toast */
-.fab{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom) + 16px);z-index:6;background:linear-gradient(180deg,#ffdb05,#f49c20);color:#1d1d1d;font-weight:700;font-size:14px;letter-spacing:.08em;padding:13px 20px;border-radius:26px;box-shadow:0 4px 16px rgba(0,0,0,.55)}
+.fab{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom) + 16px);z-index:6;background:#e0a33a;color:#1d1d1d;font-weight:700;font-size:14px;letter-spacing:.08em;padding:13px 20px;border-radius:26px;box-shadow:0 4px 16px rgba(0,0,0,.55)}
 .fab:active{transform:scale(.96)}
 .picker{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom) + 74px);z-index:7;width:252px;max-height:calc(100vh - 160px);overflow-y:auto;background:#1d1d1d;border:1px solid #363636;border-radius:14px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.6);display:none}
 .picker.open{display:block}
@@ -176,7 +176,7 @@ ${btn('left:nextweek', 'card tap green', `<p class="lbl">Booked next week</p><p 
   const cols = 'grid-template-columns:minmax(0,1fr) repeat(5,minmax(30px,40px)) 34px';
   const head = `<span></span>${g.days.map((d, i) => btn(`left:grid~~${i}`, `h${i === g.todayIdx ? ' now' : ''}${past(i) ? ' past' : ''}`, `${DAYS[i]}<br>${dnum(d.day)}`)).join('')}<span class="h">Tot</span>`;
   const cell = (r, v, i) => (v
-    ? `<button type="button" class="c${past(i) ? ' past' : ''}" style="background:rgba(113,166,43,${(0.18 + 0.72 * (v / cMaxM)).toFixed(2)})" data-d="${esc(`left:grid~${r.name}~${i}`)}">${v}</button>`
+    ? `<button type="button" class="c${past(i) ? ' past' : ''}" style="background:rgba(113,166,43,${(0.12 + 0.5 * (v / cMaxM)).toFixed(2)})" data-d="${esc(`left:grid~${r.name}~${i}`)}">${v}</button>`
     : `<span class="c z${past(i) ? ' past' : ''}">·</span>`);
   const body = g.reps.map((r, ri) => `${btn(`left:grid~${r.name}`, 'r', esc(shortRep(r.name)))}${cells[ri].map((v, i) => cell(r, v, i)).join('')}${btn(`left:grid~${r.name}`, 't', r.n)}`).join('');
   const foot = `<span class="r" style="color:#a1a1a1">Per day</span>${g.days.map((d, i) => `<span class="t${past(i) ? ' past' : ''}">${d.n}</span>`).join('')}<span class="t">${g.total}</span>`;
@@ -236,7 +236,7 @@ ${btn('middle:avg~svc', 'card tap', `<div class="ph" style="margin:0"><h2>Servic
   const cols = `grid-template-columns:minmax(64px,1fr) repeat(${L.length},minmax(26px,58px)) 34px`;
   const head = `<span></span>${L.map((l) => btn(`middle:open~~${l.name}`, 'h', `${esc(l.short)}<br><span style="font-weight:400">${l.n}</span>`)).join('')}${btn('middle:open', 'h', `<span style="color:#ffdb05">Total<br>${p.openN}</span>`)}`;
   const body = p.matrix.map((r) => `${btn(`middle:open~${r.stage}`, 'r', esc(stageName(r.stage)))}${r.cells.map((v, i) => (v
-    ? `<button type="button" class="c" style="background:rgba(113,166,43,${(0.18 + 0.72 * (v / p.cellMax)).toFixed(2)})" data-d="${esc(`middle:open~${r.stage}~${L[i].name}`)}">${v}</button>`
+    ? `<button type="button" class="c" style="background:rgba(113,166,43,${(0.12 + 0.5 * (v / p.cellMax)).toFixed(2)})" data-d="${esc(`middle:open~${r.stage}~${L[i].name}`)}">${v}</button>`
     : '<span class="c z">·</span>')).join('')}${btn(`middle:open~${r.stage}`, 't', r.total)}`).join('');
   const grid = `<div class="card"><div class="ph"><h2>Open deals by stage</h2><span class="sub">${money(p.openAmt)}</span></div>
 <div class="mx" style="${cols}">${head}${body}</div><p class="sub" style="margin-top:8px">Columns are CRM layouts (departments). Tap a stage, column or cell.</p></div>`;
