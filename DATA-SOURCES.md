@@ -210,7 +210,7 @@ Permits submitted / received and Incoming / Closed tickets are shown as pairs, o
   - **this wk:** this week's count, shown in yellow when it is above zero.
 - Up to 8 groups are shown, largest first.
 
-### 4-week totals (list)
+### 4-week totals (list, phone view only)
 - Each tile's 4 weekly counts added together, using the same sources and rules as the tiles above.
 
 ---

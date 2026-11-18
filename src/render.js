@@ -98,15 +98,12 @@ tr.now{color:#ffdb05;font-weight:700}tr.now th{color:#ffdb05;font-weight:700}
 .fm .t b{font-size:16px}
 .fc{min-height:0;position:relative}
 .fc svg{position:absolute;inset:0;width:100%;height:100%}
-.tight .row{padding:5px 0}.tight .row span:first-child{font-size:15px}.tight .row span:last-child{font-size:21px}
 .spark{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:minmax(0,1fr);gap:6px;align-items:end;height:48px;border-bottom:1px solid #333333}
 .tile .spark{height:auto;flex:1 1 0;min-height:36px}
 .spark div{border-radius:3px 3px 0 0}
 .pw{background:#474747}
 .wkn{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;font-size:12px;color:#a1a1a1;text-align:center}
 .wkn span:last-child{color:#fff;font-weight:700}
-.row{display:flex;align-items:baseline;justify-content:space-between;padding:12px 0;border-top:1px solid #333333}
-.row span:first-child{color:#eaeaea;font-size:16px}.row span:last-child{font-size:26px;font-weight:700}
 /* Tucked inside the bottom-right card's corner, well clear of the screen edge (TVs can crop
    the outer pixels). That card gets extra right padding so nothing sits under the code. */
 .qr{position:absolute;right:52px;bottom:44px;line-height:0;padding:8px;border:2px solid #71a62b;border-radius:6px;background:#1a1a1a}
@@ -379,9 +376,8 @@ function opsBoard(o, win) {
   const types = pr ? `<div class="card panel"><div class="ph"><h2 class="lbl">New projects by type</h2><span class="sub">last 4 weeks · ${pr.total4}</span></div>
 <div class="hb" style="grid-template-columns:170px minmax(0,1fr) 40px 64px;gap:16px 14px"><span style="font-size:13px;color:#a1a1a1">Type</span><span></span><span style="font-size:13px;color:#a1a1a1;text-align:right">4 wk</span><span style="font-size:13px;color:#a1a1a1;text-align:right">this wk</span>
 ${pr.groups.slice(0, 8).map((g) => `<span style="color:#eaeaea">${esc(g.name)}</span><div class="bar g" style="width:${Math.max(1, (g.n / gMax) * 100).toFixed(1)}%"></div><span class="r">${g.n}</span><span style="text-align:right;font-weight:700;color:${g.now ? '#ffdb05' : '#a1a1a1'}">${g.now}</span>`).join('')}</div></div>` : waiting();
-  const totals = `<div class="card panel"><h2 class="lbl">4-week totals</h2><p class="sub">${md(win.weeks[0])} – ${md(addDays(win.ws, 6))}</p><div class="tight">
-${o.tiles.map((t) => `<div class="row"><span>${esc(t.label)}</span><span>${t.wk ? sum(t.wk) : '–'}</span></div>`).join('')}</div></div>`;
-  return `${tiles}<section style="display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr) minmax(0,0.8fr);gap:24px;flex:0 0 420px;min-height:0">${line}${types}${totals}</section>`;
+  // Same columns and gap as the tile rows, so the two bottom cards split where the Tickets card starts.
+  return `${tiles}<section style="display:grid;grid-template-columns:minmax(0,1fr) ${FLOW_COL}px;gap:20px;flex:0 0 420px;min-height:0">${line}${types}</section>`;
 }
 
 // opts.qr: inline SVG of today's phone sign-in code for this board, shown bottom-right.
