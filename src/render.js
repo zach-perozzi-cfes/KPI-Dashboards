@@ -88,9 +88,17 @@ h2.lbl{font-size:28px;letter-spacing:-.01em}
 .hb{display:grid;align-items:center;font-size:16px}
 .hb .bar{height:18px;border-radius:3px}
 .r{text-align:right;font-weight:700}
-.fnl{flex-grow:1;min-height:0;display:grid;grid-template-columns:220px minmax(0,1fr) 64px 56px 96px;gap:0 20px;align-items:center;align-content:space-evenly;font-size:16px}
+.fnl{flex-grow:1;min-height:0;display:flex;flex-direction:column;font-size:16px}
+.fr{flex:1 1 0;min-height:0;display:grid;grid-template-columns:220px minmax(0,1fr) 270px;gap:0 20px;align-items:center}
+.fr.h{flex:0 0 auto}
+.fnum{align-self:stretch;display:grid;grid-template-columns:repeat(3,1fr);align-items:center;border:1px solid #333;border-top:0;background:#1d1d1d}
+.fnum>span{align-self:stretch;display:flex;align-items:center;justify-content:center;padding:0 8px}
+.fnum>span+span{border-left:1px solid #2c2c2c}
+.fr.h .fnum{border-top:1px solid #333;border-radius:8px 8px 0 0;background:#262626}
+.fr.h .fnum>span{padding:8px}
+.fr:last-child .fnum{border-radius:0 0 8px 8px}
 .fn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fh{font-size:13px;color:#a1a1a1;font-weight:400}
+.fh{font-size:13px;color:#a1a1a1;font-weight:600;text-transform:uppercase;letter-spacing:.08em}
 .ft{position:relative;height:20px}
 .fbl,.fbs{position:absolute;left:0;border-radius:3px}
 .fbl{top:0;height:20px;background:rgba(113,166,43,.32);border:1px solid rgba(140,198,63,.6)}
@@ -165,14 +173,14 @@ function funnelRows(f) {
   const mx = Math.max(1, ...f.rows.flatMap((x) => [x.leads, x.sat]));
   const overall = f.leads ? f.sat / f.leads : 0;
   const w = (n) => `${((n / mx) * 100).toFixed(1)}%`;
-  const head = '<span></span><span></span><span class="fh r">Leads</span><span class="fh r">Sat</span><span class="fh r">Sat rate</span>';
+  const head = '<div class="fr h"><span></span><span></span><div class="fnum"><span class="fh">Leads</span><span class="fh">Sat</span><span class="fh">Sat rate</span></div></div>';
   const rows = f.rows.map((x) => {
     const rate = x.leads && x.sat <= x.leads ? x.sat / x.leads : null;
     const rateTxt = rate == null ? '–' : pct(x.sat, x.leads);
     const rateCol = rate == null ? '#a1a1a1' : rate >= overall ? '#8cc63f' : '#eaeaea';
-    return `<span class="fn" style="color:${x.other ? '#a1a1a1' : '#eaeaea'}">${esc(x.name)}</span>`
+    return `<div class="fr"><span class="fn" style="color:${x.other ? '#a1a1a1' : '#eaeaea'}">${esc(x.name)}</span>`
       + `<div class="ft">${x.leads ? `<div class="fbl${x.other ? ' o' : ''}" style="width:${w(x.leads)}"></div>` : ''}${x.sat ? `<div class="fbs${x.other ? ' o' : ''}" style="width:${w(x.sat)}"></div>` : ''}</div>`
-      + `<span class="r">${x.leads}</span><span class="r">${x.sat}</span><span class="r" style="color:${rateCol}">${rateTxt}</span>`;
+      + `<div class="fnum"><span class="r">${x.leads}</span><span class="r">${x.sat}</span><span class="r" style="color:${rateCol}">${rateTxt}</span></div></div>`;
   }).join('');
   return `<div class="fnl">${head}${rows}</div>`;
 }
@@ -245,7 +253,7 @@ ${mtgGrid}</div>
   else if (!f.rows.length) funnelBody = `<span class="sub">No leads or appointments in ${prevMon}</span>`;
   else funnelBody = funnelRows(f);
   const bottom = `<section style="display:flex;flex-direction:column;flex-grow:1;min-height:0">
-<div class="card panel" style="gap:10px;flex-grow:1"><div class="ph"><h2 class="lbl">Leads → appointments sat, by source · ${prevMon}</h2><span class="key"><span class="sw" style="background:rgba(113,166,43,.32);border:1px solid rgba(140,198,63,.6)"></span>Leads</span><span class="key"><span class="sw g" style="background:#8cc63f"></span>Appointments sat</span><span class="sub" style="display:flex;align-items:baseline;gap:8px">${f ? `<b style="font-size:28px;line-height:1;font-weight:800;color:#8cc63f">${pct(f.sat, f.leads)}</b>overall` : ''}</span></div>
+<div class="card panel" style="gap:10px;flex-grow:1"><div class="ph"><h2 class="lbl">Leads → appointments sat, by source · ${prevMon}</h2><span class="key"><span class="sw" style="background:rgba(113,166,43,.32);border:1px solid rgba(140,198,63,.6)"></span>Leads</span><span class="key"><span class="sw g" style="background:#8cc63f"></span>Appointments sat</span>${f ? `<span class="key"><b style="color:#8cc63f">${pct(f.sat, f.leads)}</b>overall</span>` : ''}</div>
 ${funnelBody}</div>
 </section>`;
   return kpis + charts + bottom;
