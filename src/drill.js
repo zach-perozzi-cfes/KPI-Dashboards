@@ -113,7 +113,7 @@ function sales(id, src, win) {
       next ? 'Every CRM Event starting next Monday–Friday, any owner.' : 'Every CRM Event starting this week (Mon–Sun), any owner or kind.', rows, mtgRec, groups, { unit: 'meetings', explain: next ? 'Appointments already on the calendar for next week. Most are sales visits where a rep meets a homeowner to talk about solar, batteries or other work. A full calendar next week means sales activity is lined up ahead of time.' : 'Every appointment on the CRM calendar this week, mostly sales visits with homeowners. These meetings are where interest turns into a proposal, so this shows how busy the sales team is.' });
   }
   if (kind === 'grid') {
-    if (!src.meetings.data) return pending('Meetings by rep');
+    if (!src.meetings.data) return pending('Meetings by RPD');
     const gws = M.gridWeekStart(win);
     const rep = a || null;
     const di = b !== undefined && b !== '' ? Number(b) : null;

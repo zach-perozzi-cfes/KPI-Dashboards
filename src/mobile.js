@@ -186,7 +186,7 @@ ${btn('left:nextweek', 'card tap green', `<p class="lbl">Booked next week</p><p 
   const body = g.reps.map((r, ri) => `${btn(`left:grid~${r.name}`, 'r', esc(shortRep(r.name)))}${cells[ri].map((v, i) => cell(r, v, i)).join('')}${btn(`left:grid~${r.name}`, 't tot', r.n)}`).join('');
   const foot = `<span class="r" style="color:#a1a1a1">Per day</span>${g.days.map((d, i) => `<span class="t day${past(i) ? ' past' : ''}">${d.n}</span>`).join('')}<span class="t day tot all">${g.total}</span>`
     + `<span class="totband"></span><span class="dayband" style="grid-row:${g.reps.length + 2} / span 1"></span>`;
-  const grid = `<div class="card"><div class="ph"><h2>${g.upcoming ? 'Meetings next week' : 'Meetings by rep'}</h2><span class="sub">${g.upcoming ? `${g.total} booked` : `${g.total} total · ${g.ahead} ahead`}</span></div>
+  const grid = `<div class="card"><div class="ph"><h2>${g.upcoming ? 'Meetings next week' : 'Meetings by RPD'}</h2><span class="sub">${g.upcoming ? `${g.total} booked` : `${g.total} total · ${g.ahead} ahead`}</span></div>
 ${g.reps.length ? `<div class="mx" style="${cols};grid-template-rows:repeat(${g.reps.length + 2},auto)">${head}${body}${foot}</div>` : `<p class="empty">No meetings booked for ${g.upcoming ? 'next' : 'this'} week yet</p>`}</div>`;
 
   const sMax = Math.max(1, ...s.sources.map((x) => x.n));

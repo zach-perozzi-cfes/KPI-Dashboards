@@ -4,7 +4,7 @@
 
 const { addDays } = require('./metrics');
 const { maxGapHours } = require('./schedule');
-const { MONTHS, DAYS, esc, sum, md, dnum, weekLabel, money, delta, avg, fmtAvg, dayTimeFmt } = require('./format');
+const { MONTHS, DAYS, esc, sum, md, dnum, money, delta, dayTimeFmt } = require('./format');
 const flare = require('./flare');
 
 const BOARDS = {
@@ -182,10 +182,10 @@ function salesBoard(s, win) {
   if (!s) return waiting();
   const [, , l2, l3] = s.leadsWk; const [, , c2, c3] = s.callsWk; const [, , m2, m3] = s.mtgWk;
   const kpis = `<div class="sec"><p class="grp"><i style="background:#71a62b"></i>This week</p><section class="kpis">
-<div class="card kpi"><p class="lbl">Leads created</p><p class="big">${l3}</p><p class="sub">${delta(l3, l2)} · 4-wk avg ${fmtAvg(avg(s.leadsWk))}</p></div>
+<div class="card kpi"><p class="lbl">Leads created</p><p class="big">${l3}</p><p class="sub">${short(delta(l3, l2))}</p></div>
 <div class="card kpi"><p class="lbl">Calls logged</p><p class="big">${c3}</p><p class="sub">${short(delta(c3, c2))}</p></div>
 <div class="card kpi"><p class="lbl">Meetings this week</p><p class="big">${m3}</p><p class="sub">${short(delta(m3, m2))}</p></div>
-<div class="card kpi green"><p class="lbl">Meetings booked · next week</p><p class="big">${s.nextTotal}</p><p class="sub">On the calendar for ${esc(weekLabel(win.nextWs).replace(/, \d{4}$/, ''))}</p></div>
+<div class="card kpi green"><p class="lbl">Meetings booked · next week</p><p class="big">${s.nextTotal}</p><p class="sub">&nbsp;</p></div>
 </section></div>`;
 
   // Tallest bar + its number label must fit the 340px chart row (header, gaps, day labels): ~170px.
@@ -224,7 +224,7 @@ function salesBoard(s, win) {
   const mtgGrid = reps.length
     ? `<div class="mx" style="grid-template-rows:repeat(${reps.length + 2},auto)">${mHead}${mBody}${mFoot}${band}</div>`
     : `<div class="empty" style="font-size:18px">No meetings booked for ${g.upcoming ? 'next' : 'this'} week yet</div>`;
-  const mtgTitle = g.upcoming ? 'Meetings next week · by rep' : 'Meetings this week · by rep';
+  const mtgTitle = g.upcoming ? 'Meetings next week · by RPD' : 'Meetings this week · by RPD';
   const dayLbl = (arr) => arr.map((d, i) => `<p>${DAYS[i]} ${dnum(d.day)}</p>`).join('');
 
   const charts = `<section style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;height:340px;flex-shrink:0">
