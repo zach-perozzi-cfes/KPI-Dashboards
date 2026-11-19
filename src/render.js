@@ -70,6 +70,11 @@ h2.lbl{font-size:21px;letter-spacing:-.01em}
 .mr{color:#eaeaea;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mc{display:flex;align-items:center;justify-content:center;border-radius:6px;font-weight:700;font-size:18px}
 .mt{text-align:center;font-weight:700;font-size:18px;white-space:nowrap}
+/* Total column: its own tinted band with bigger numbers, so each rep's week total stands out. */
+.mx .totband{position:absolute;z-index:-1;grid-row:1 / -1;inset:-5px -5px;border:2px solid rgba(140,198,63,.6);border-radius:9px;background:rgba(113,166,43,.16)}
+.mh.tot{color:#8cc63f}
+.mt.tot{font-size:22px;font-weight:800;color:#fff}
+.mt.tot.all{color:#8cc63f;font-size:24px}
 .g{background:#71a62b}.y{background:#ffdb05}.o{background:#f49c20}.l{background:#eaeaea}
 .vg{background:linear-gradient(180deg,#71a62b,#5a881c)}
 .vo{background:linear-gradient(180deg,#ffdb05,#f49c20)}
@@ -204,12 +209,13 @@ function salesBoard(s, win) {
   const isLight = (d, i) => !past(i) && dMax >= 4 && d.n < dMax / 2;
   const fade = (i) => (past(i) ? ';opacity:.3' : '');
   const cellH = reps.length > 5 ? 28 : 32;
-  const mHead = `<span></span>${g.days.map((d, i) => `<span class="mh"${isToday(i) ? ' style="background:#ffdb05;color:#1d1d1d;border-radius:4px"' : past(i) ? ' style="color:#474747"' : ''}>${DAYS[i]} ${dnum(d.day)}</span>`).join('')}<span class="mh" style="color:#a1a1a1">Total</span>`;
+  const mHead = `<span></span>${g.days.map((d, i) => `<span class="mh"${isToday(i) ? ' style="background:#ffdb05;color:#1d1d1d;border-radius:4px"' : past(i) ? ' style="color:#474747"' : ''}>${DAYS[i]} ${dnum(d.day)}</span>`).join('')}<span class="mh tot">Total</span>`;
   const mBody = reps.map((r, ri) => `<span class="mr"${r.other ? ' style="color:#a1a1a1"' : ''}>${esc(r.name)}</span>${repCells[ri].map((v, i) => (v
     ? `<span class="mc" style="height:${cellH}px;background:rgba(113,166,43,${(0.18 + 0.72 * (v / cMaxM)).toFixed(2)})${fade(i)}">${v}</span>`
-    : `<span class="mc" style="height:${cellH}px;color:#474747;font-weight:400${fade(i)}">·</span>`)).join('')}<span class="mt">${r.n}</span>`).join('');
-  const mFoot = `<span class="mr" style="color:#a1a1a1">Per day</span>${g.days.map((d, i) => `<span class="mt"${isLight(d, i) ? ' style="color:#f49c20"' : past(i) ? ' style="color:#474747"' : ''}>${d.n}${isLight(d, i) ? ' · light' : ''}</span>`).join('')}<span class="mt">${g.total}</span>`;
-  const band = g.todayIdx >= 0 ? `<div class="today" style="grid-column:${g.todayIdx + 2} / span 1"></div>` : '';
+    : `<span class="mc" style="height:${cellH}px;color:#474747;font-weight:400${fade(i)}">·</span>`)).join('')}<span class="mt tot">${r.n}</span>`).join('');
+  const mFoot = `<span class="mr" style="color:#a1a1a1">Per day</span>${g.days.map((d, i) => `<span class="mt"${isLight(d, i) ? ' style="color:#f49c20"' : past(i) ? ' style="color:#474747"' : ''}>${d.n}${isLight(d, i) ? ' · light' : ''}</span>`).join('')}<span class="mt tot all">${g.total}</span>`;
+  const band = (g.todayIdx >= 0 ? `<div class="today" style="grid-column:${g.todayIdx + 2} / span 1"></div>` : '')
+    + '<div class="totband" style="grid-column:7 / span 1"></div>';
   const mtgGrid = reps.length
     ? `<div class="mx" style="grid-template-rows:repeat(${reps.length + 2},auto)">${mHead}${mBody}${mFoot}${band}</div>`
     : `<div class="empty" style="font-size:18px">No meetings booked for ${g.upcoming ? 'next' : 'this'} week yet</div>`;
