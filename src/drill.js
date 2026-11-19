@@ -177,7 +177,7 @@ function pipeline(id, src, win) {
     const prev = a === 'prev';
     const { prevSameEnd } = M.newDealWindow(win);
     const rows = all.filter((r) => r.d && (prev ? r.d >= win.prevMonthStart && r.d <= prevSameEnd : r.d >= win.monthStart && r.d <= win.today));
-    const title = prev ? `New deals · ${md(win.prevMonthStart)}–${Number(prevSameEnd.slice(8, 10))}` : `New deals · ${MONTHS[curMonth - 1]} to date`;
+    const title = prev ? `New deals · ${md(win.prevMonthStart)}–${Number(prevSameEnd.slice(8, 10))}` : `New deals · This month`;
     return make(title, 'Deals by Created Time, any stage, open or closed. Service = Pipeline contains "CFSS".', rows, (r) => dealRec(r, join(svcLabel(r), r.stage)), [
       { label: 'Standard vs service', rows: countBy(rows, svcLabel) },
       { label: 'By stage now', rows: countBy(rows, (r) => r.stage || null) },
@@ -194,7 +194,7 @@ function pipeline(id, src, win) {
   if (kind === 'mtd' || kind === 'ytd' || kind === 'month') {
     const m = kind === 'mtd' ? curMonth : kind === 'month' ? Number(a) : null;
     const rows = wonYtd().filter((r) => m == null || Number(r.date.slice(5, 7)) === m);
-    const title = kind === 'ytd' ? `Closed won · ${year}` : `Closed won · ${MONTHS[m - 1]}${m === curMonth ? ' to date' : ''}`;
+    const title = kind === 'ytd' ? `Closed won · ${year}` : (m === curMonth ? `Closed won · This month` : `Closed won · ${MONTHS[m - 1]}`);
     return make(title, WON_RULE, rows, wonRec, wonGroups(rows, m == null), { unit: 'deals', money: true, byAmount: true, explain: `Sales we have closed: jobs the customer signed and agreed to buy ${kind === 'ytd' ? 'so far this year' : `in ${MONTHS[m - 1]}${m === curMonth ? ' so far' : ''}`}, and their total dollar value. This is the sales revenue the company has booked, before the work is installed. Standard jobs are new installs; service jobs are repair and maintenance.` });
   }
   if (kind === 'open') {

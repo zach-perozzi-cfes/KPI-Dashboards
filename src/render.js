@@ -42,8 +42,8 @@ main{flex-grow:1;padding:12px 40px 32px;display:flex;flex-direction:column;gap:2
 /* Cards: dark gradient, hairline border, green-to-orange top edge. */
 .card{position:relative;background:linear-gradient(180deg,#222222,#1a1a1a);border:1px solid #2f2f2f;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
 .card::before{content:'';position:absolute;inset:-1px;border-radius:inherit;border-top:2px solid transparent;background:linear-gradient(90deg,#71a62b,#f49c20) border-box;-webkit-mask:linear-gradient(#000 0 0) padding-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.9;pointer-events:none}
-.lbl{font-size:18px;color:#eaeaea;margin:0;font-weight:700}
-h2.lbl{font-size:21px;letter-spacing:-.01em}
+.lbl{font-size:24px;color:#eaeaea;margin:0;font-weight:700}
+h2.lbl{font-size:28px;letter-spacing:-.01em}
 .sub{font-size:15px;color:#a1a1a1;margin:0}
 .up{color:#71a62b;font-weight:700}.dn{color:#f49c20;font-weight:700}.flat{color:#a1a1a1;font-weight:700}
 .warn{color:#f49c20;font-weight:700}
@@ -257,12 +257,12 @@ function pipelineBoard(p, win) {
   const curM = p.months.length;
   const nd = p.newDeals;
   const newTile = nd
-    ? `<div class="card kpi"><p class="lbl">New deals · ${MONTHS[curM - 1]} to date</p><p class="big">${nd.n}</p></div>`
-    : `<div class="card kpi"><p class="lbl">New deals · ${MONTHS[curM - 1]} to date</p><p class="big">–</p><p class="sub">waiting for Zoho</p></div>`;
+    ? `<div class="card kpi"><p class="lbl">New deals · This month</p><p class="big">${nd.n}</p></div>`
+    : `<div class="card kpi"><p class="lbl">New deals · This month</p><p class="big">–</p><p class="sub">waiting for Zoho</p></div>`;
   const kpis = `<div class="sec"><p class="grp"><i style="background:#71a62b"></i>Month &amp; year to date</p><section class="kpis">
 ${newTile}
 <div class="card kpi gold"><p class="lbl">Avg deal size · ${win.today.slice(0, 4)}</p><p class="big" style="font-size:76px">${money(p.avgStd)}</p></div>
-<div class="card kpi"><p class="lbl">Closed won · ${MONTHS[curM - 1]} to date</p><p class="big" style="font-size:76px">${money(p.mtdAmt)}</p></div>
+<div class="card kpi"><p class="lbl">Closed won · This month</p><p class="big" style="font-size:76px">${money(p.mtdAmt)}</p></div>
 <div class="card kpi green"><p class="lbl">Closed won · ${win.today.slice(0, 4)}</p><p class="big" style="font-size:76px">${money(p.ytdAmt)}</p></div>
 </section></div>`;
 
