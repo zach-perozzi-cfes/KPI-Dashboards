@@ -4,7 +4,7 @@
 // Built on request from the cached sources; never calls Zoho.
 
 const M = require('./metrics');
-const { MONTHS, DAYS, md, weekLabel, money } = require('./format');
+const { MONTHS, DAYS, md, weekLabel, money, timeFmt } = require('./format');
 
 const { addDays, nyDate, inRange } = M;
 const CRM_URL = (process.env.ZOHO_CRM_ORG_URL || '').replace(/\/+$/, '');
@@ -12,15 +12,14 @@ const PROJ_URL = (process.env.ZOHO_PROJECTS_URL || '').replace(/\/+$/, '');
 const crm = (tab, id) => (CRM_URL && id ? `${CRM_URL}/tab/${tab}/${id}` : '');
 const proj = (id) => (PROJ_URL && id ? `${PROJ_URL}#project/${id}` : '');
 
-const TZ = 'America/New_York';
-const tmFmt = new Intl.DateTimeFormat('en-US', { timeZone: TZ, hour: 'numeric', minute: '2-digit' });
 // { day: "Nov 18", time: "2:30 PM" } (time is blank for date-only fields).
 function when(v) {
   if (!v) return { day: '', time: '' };
   if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return { day: md(v), time: '' };
   const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? { day: '', time: '' } : { day: md(nyDate(v)), time: tmFmt.format(d) };
+  return Number.isNaN(d.getTime()) ? { day: '', time: '' } : { day: md(nyDate(v)), time: timeFmt.format(d) };
 }
+// A record's date as milliseconds for sorting (0 when missing); date-only values count as noon UTC.
 const sortKey = (v) => { const d = v ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(v) ? `${v}T12:00:00Z` : v) : null; return d && !Number.isNaN(d.getTime()) ? d.getTime() : 0; };
 const dash = (s) => (s && String(s).trim()) || '—';
 const join = (...a) => a.filter(Boolean).join(' · ');
@@ -299,4 +298,4 @@ function buildDrill(fullId, sources, win) {
   return null;
 }
 
-module.exports = { buildDrill, OTHER };
+module.exports = { buildDrill, OTHER, sortKey };

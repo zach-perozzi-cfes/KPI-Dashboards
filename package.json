@@ -2,7 +2,7 @@
   "name": "cfes-office-monitors",
   "version": "1.0.0",
   "private": true,
-  "description": "Live CFES KPI boards (Inside Sales, Sales Pipeline, Operations) for Yodeck office monitors, fed by Zoho CRM and Zoho Projects.",
+  "description": "Live CFES KPI boards (Inside Sales, Sales Pipeline, Operations) for Yodeck office monitors, fed by Zoho CRM, Zoho Projects and Zoho Desk.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

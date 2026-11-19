@@ -16,7 +16,9 @@ const SEASONS = [
 // These drift down like snow instead of floating up.
 const FALL = ['❄️'];
 
-const mdFmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', month: 'numeric', day: 'numeric' });
+const { TZ } = require('./metrics');
+
+const mdFmt = new Intl.DateTimeFormat('en-US', { timeZone: TZ, month: 'numeric', day: 'numeric' });
 // Seasonal emoji showing on a given date, as [{ name, emoji }].
 function seasonal(now = new Date()) {
   const parts = Object.fromEntries(mdFmt.formatToParts(now).map((x) => [x.type, Number(x.value)]));
@@ -96,4 +98,4 @@ function flareBurst(emoji){
   }
 }`;
 
-module.exports = { EMOJI, CUSTOM, SEASONS, seasonal, add, since, latest, FONT_LINK, CSS, BURST_JS };
+module.exports = { EMOJI, CUSTOM, IMG_SRC, SEASONS, seasonal, add, since, latest, FONT_LINK, CSS, BURST_JS };

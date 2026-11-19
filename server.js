@@ -12,7 +12,7 @@ const { BOARDS, renderPage, renderBoard } = require('./src/render');
 const { SLOTS, nowHM, slotLabel } = require('./src/schedule');
 const { buildDrill } = require('./src/drill');
 const { renderMobile, renderDrill, renderSignIn } = require('./src/mobile');
-const { makeSession } = require('./src/session');
+const { makeSession, safeEqual } = require('./src/session');
 const { qrSvg } = require('./src/qr');
 const flare = require('./src/flare');
 
@@ -50,8 +50,7 @@ async function refresh({ scheduled = true } = {}) {
   try {
     if (FIXTURE) {
       sources = JSON.parse(fs.readFileSync(FIXTURE, 'utf8'));
-      const now = process.env.DEMO_NOW ? new Date(process.env.DEMO_NOW) : new Date();
-      metrics = computeAll(sources, now);
+      metrics = computeAll(sources, nowFn());
       return;
     }
     sources = await loadAll(windowFor(new Date()), sources);
@@ -71,11 +70,6 @@ async function refresh({ scheduled = true } = {}) {
   } finally {
     running = false;
   }
-}
-
-function safeEqual(a, b) {
-  const A = Buffer.from(String(a)), B = Buffer.from(String(b));
-  return A.length === B.length && crypto.timingSafeEqual(A, B);
 }
 
 function clientIp(req) {

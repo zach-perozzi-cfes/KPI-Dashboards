@@ -80,6 +80,15 @@ const isWeekend = (ds) => dow(ds) === 0 || dow(ds) === 6;
 // Meetings-by-rep grid: Mon-Fri of this week, or next week on Sat/Sun.
 const gridWeekStart = (win) => (isWeekend(win.today) ? win.nextWs : win.ws);
 const repName = (r) => REP_NAMES[r.ownerId] || r.owner || 'Unassigned';
+const sumBy = (arr, f) => arr.reduce((s, x) => s + f(x), 0);
+// Sorted [name, count] pairs -> the top 8 as { name, n }, plus one "Other (k sources)" row for the rest.
+// The drill-down (drill.js topNames) splits records the same way, so its lists match these bars.
+function topWithOther(sorted, n = 8) {
+  const top = sorted.slice(0, n).map(([name, c]) => ({ name, n: c }));
+  const rest = sorted.slice(n);
+  if (rest.length) top.push({ name: `Other (${rest.length} source${rest.length > 1 ? 's' : ''})`, n: sumBy(rest, (x) => x[1]), other: true });
+  return top;
+}
 
 function sales(src, win) {
   if (!src.leads.data || !src.calls.data || !src.meetings.data) return null;
@@ -136,9 +145,6 @@ function sales(src, win) {
     counts.set(l.src, (counts.get(l.src) || 0) + 1);
   }
   const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
-  const top = sorted.slice(0, 8).map(([name, n]) => ({ name, n }));
-  const rest = sorted.slice(8);
-  const other = rest.length ? { name: `Other (${rest.length} source${rest.length > 1 ? 's' : ''})`, n: rest.reduce((s, x) => s + x[1], 0), other: true } : null;
 
   // Appointments sat last month, by lead source. A deal counts when its Appointment_Date
   // falls in last month and Appointment Quality is filled in and not "D". This rule was
@@ -153,10 +159,7 @@ function sales(src, win) {
       satCounts.set(r.src, (satCounts.get(r.src) || 0) + 1);
     }
     const satSorted = [...satCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-    const satTop = satSorted.slice(0, 8).map(([name, n]) => ({ name, n }));
-    const satRest = satSorted.slice(8);
-    if (satRest.length) satTop.push({ name: `Other (${satRest.length} source${satRest.length > 1 ? 's' : ''})`, n: satRest.reduce((t, x) => t + x[1], 0), other: true });
-    apptSat = { rows: satTop, total: satSorted.reduce((t, x) => t + x[1], 0) };
+    apptSat = { rows: topWithOther(satSorted), total: sumBy(satSorted, (x) => x[1]) };
   }
 
   return {
@@ -166,8 +169,8 @@ function sales(src, win) {
     callsIn: thisWeekCalls.filter((x) => !x.out).length,
     callDays, nextDays, mtgGrid,
     nextTotal: nextDays.reduce((s, x) => s + x.n, 0),
-    sources: other ? [...top, other] : top,
-    sourcesTotal: sorted.reduce((s, x) => s + x[1], 0),
+    sources: topWithOther(sorted),
+    sourcesTotal: sumBy(sorted, (x) => x[1]),
   };
 }
 
@@ -246,23 +249,39 @@ function pipeline(src, win) {
     const row = months[m - 1];
     if (isService(d.pipeline)) { row.svc += d.amount; row.nSvc++; } else { row.std += d.amount; row.nStd++; }
   }
-  const sum = (arr, f) => arr.reduce((s, x) => s + f(x), 0);
   const cur = months[curMonth - 1];
   const prev = curMonth > 1 ? months[curMonth - 2] : null;
   const late = stages.filter((s) => s.kind === 'late');
+  const ytdStdAmt = sumBy(months, (m) => m.std), ytdStdN = sumBy(months, (m) => m.nStd);
+  const ytdSvcAmt = sumBy(months, (m) => m.svc), ytdSvcN = sumBy(months, (m) => m.nSvc);
   return {
     stages,
     layouts, matrix, cellMax,
-    openAmt: sum(stages, (s) => s.amt), openN: sum(stages, (s) => s.n),
-    lateAmt: sum(late, (s) => s.amt), lateN: sum(late, (s) => s.n),
+    openAmt: sumBy(stages, (s) => s.amt), openN: sumBy(stages, (s) => s.n),
+    lateAmt: sumBy(late, (s) => s.amt), lateN: sumBy(late, (s) => s.n),
     months,
     mtdAmt: cur.std + cur.svc, mtdN: cur.nStd + cur.nSvc, mtdStdN: cur.nStd, mtdSvcN: cur.nSvc,
     prevAmt: prev ? prev.std + prev.svc : null,
-    ytdAmt: sum(months, (m) => m.std + m.svc), ytdN: sum(months, (m) => m.nStd + m.nSvc),
-    ytdStdAmt: sum(months, (m) => m.std), ytdStdN: sum(months, (m) => m.nStd),
-    ytdSvcAmt: sum(months, (m) => m.svc), ytdSvcN: sum(months, (m) => m.nSvc),
+    ytdAmt: sumBy(months, (m) => m.std + m.svc), ytdN: sumBy(months, (m) => m.nStd + m.nSvc),
+    ytdStdAmt, ytdStdN, ytdSvcAmt, ytdSvcN,
+    avgStd: ytdStdN ? ytdStdAmt / ytdStdN : 0,
+    avgSvc: ytdSvcN ? ytdSvcAmt / ytdSvcN : 0,
+    trend: monthTrend(months.slice(0, curMonth - 1).map((m) => m.std + m.svc)),
     newDeals: newDeals(src, win),
   };
+}
+
+// Least-squares line over the completed months (the month-to-date month is left out).
+// { months: k, slope, at(i) } with at(i) the line's value at month index i, or null under 3 months.
+function monthTrend(done) {
+  if (done.length < 3) return null;
+  const k = done.length;
+  const mx = (k - 1) / 2;
+  const my = done.reduce((s, v) => s + v, 0) / k;
+  let num = 0, den = 0;
+  done.forEach((v, i) => { num += (i - mx) * (v - my); den += (i - mx) ** 2; });
+  const slope = num / den;
+  return { months: k, slope, at: (i) => my + slope * (i - mx) };
 }
 
 // ---------- Operations ----------
@@ -329,7 +348,7 @@ function computeAll(sources, now = new Date()) {
 }
 
 module.exports = {
-  computeAll, windowFor, addDays, nyDate, dow, inRange, weekIndex,
-  REP_NAMES, GRID_EXCLUDE, CALL_REPS, isRepCall, callRep, isOut, isSat, isService, gridWeekStart, repName,
-  STAGE_ORDER, stageRank, LAYOUT_SHORT, newDealWindow, TASK_KINDS, TICKET_KINDS, GROUP_LABELS,
+  TZ, computeAll, windowFor, addDays, nyDate, inRange,
+  GRID_EXCLUDE, CALL_REPS, isRepCall, callRep, isOut, isSat, isService, gridWeekStart, repName,
+  stageRank, LAYOUT_SHORT, newDealWindow, TASK_KINDS, TICKET_KINDS, GROUP_LABELS,
 };

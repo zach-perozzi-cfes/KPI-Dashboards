@@ -1,7 +1,8 @@
 'use strict';
 // Fixed daily pull times (America/New_York), e.g. REFRESH_TIMES="07:00,12:00,16:00".
 
-const TZ = 'America/New_York';
+const { TZ } = require('./metrics');
+
 const hmFmt = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 
 function parseSlots(raw) {
@@ -42,4 +43,4 @@ function slotLabel(s) {
   return `${h % 12 || 12}:${m} ${h < 12 ? 'AM' : 'PM'}`;
 }
 
-module.exports = { SLOTS, parseSlots, nowHM, nextSlot, maxGapHours, slotLabel };
+module.exports = { SLOTS, nowHM, nextSlot, maxGapHours, slotLabel };

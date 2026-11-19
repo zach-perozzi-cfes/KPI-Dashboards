@@ -25,6 +25,8 @@ services:
         sync: false
       - key: ZOHO_PROJECTS_URL
         sync: false
+      - key: ZOHO_DESK_ORG_ID
+        sync: false
       - key: ZOHO_PORTAL_ID
         value: "727368074"
       - key: REFRESH_TIMES

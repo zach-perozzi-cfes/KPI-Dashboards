@@ -1,7 +1,7 @@
 'use strict';
 // Formatting helpers shared by the TV boards (render.js) and the phone view (mobile.js).
 
-const { addDays } = require('./metrics');
+const { addDays, TZ } = require('./metrics');
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -28,7 +28,7 @@ function delta(cur, prev, label = 'vs last week') {
 }
 const avg = (a) => (a.length ? sum(a) / a.length : 0);
 const fmtAvg = (v) => (Math.round(v * 10) / 10).toString();
-const timeFmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' });
-const dayTimeFmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: 'numeric', minute: '2-digit' });
+const timeFmt = new Intl.DateTimeFormat('en-US', { timeZone: TZ, hour: 'numeric', minute: '2-digit' });
+const dayTimeFmt = new Intl.DateTimeFormat('en-US', { timeZone: TZ, weekday: 'short', hour: 'numeric', minute: '2-digit' });
 
 module.exports = { MONTHS, DAYS, esc, sum, md, dnum, weekLabel, money, delta, avg, fmtAvg, timeFmt, dayTimeFmt };

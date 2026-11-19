@@ -4,6 +4,8 @@
 
 const { addDays } = require('./metrics');
 const { maxGapHours } = require('./schedule');
+const { MONTHS, DAYS, esc, sum, md, dnum, weekLabel, money, delta, avg, fmtAvg, dayTimeFmt } = require('./format');
+const flare = require('./flare');
 
 const BOARDS = {
   left: { title: 'Inside Sales', sources: ['leads', 'calls', 'meetings', 'apptSat'], system: 'Zoho CRM' },
@@ -11,8 +13,15 @@ const BOARDS = {
   right: { title: 'Operations', sources: ['projects', 'tasksDesign', 'tasksPermit', 'tasksInstall', 'tickets'], system: 'Zoho Projects + Desk' },
 };
 
-const { MONTHS, DAYS, esc, sum, md, dnum, weekLabel, money, delta, avg, fmtAvg, dayTimeFmt } = require('./format');
-const flare = require('./flare');
+// How current a board's data is (shared with the phone view). fetched = the oldest last pull of
+// its sources; stale = older than the longest gap between scheduled pulls plus an hour.
+function boardFreshness(board, sources) {
+  const b = BOARDS[board];
+  const fetched = b.sources.map((k) => sources[k] && sources[k].fetchedAt).filter(Boolean).sort()[0];
+  const failing = b.sources.filter((k) => sources[k] && sources[k].error);
+  const stale = fetched && Date.now() - new Date(fetched).getTime() > (maxGapHours() + 1) * 3600 * 1000;
+  return { fetched, failing, stale };
+}
 
 // Inter for text; Verdana if Google Fonts can't load.
 const FONTS = '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">';
@@ -21,7 +30,7 @@ const CSS = `
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#101010;overflow:hidden}
 body{font-family:Inter,Verdana,sans-serif;color:#fff;-webkit-font-smoothing:antialiased}
-/* Near-black with a soft green glow top-left and a faint orange one top-right. */
+/* Plain near-black, with the green-to-orange strip across the top. */
 #stage{width:1920px;height:1080px;transform-origin:0 0;position:absolute;left:0;top:0;display:flex;flex-direction:column;
   background:#141414}
 #stage::before{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:linear-gradient(90deg,#71a62b,#ffdb05 65%,#f49c20)}
@@ -112,16 +121,12 @@ tr.now{color:#ffdb05;font-weight:700}tr.now th{color:#ffdb05;font-weight:700}
 .hasqr>section:last-child>.card:last-child{padding-right:96px}
 `;
 
-function header(board, metrics, sources, opts = {}) {
-  const b = BOARDS[board];
-  const fetched = b.sources.map((k) => sources[k] && sources[k].fetchedAt).filter(Boolean).sort()[0];
-  const failing = b.sources.filter((k) => sources[k] && sources[k].error);
-  // Pulls run on a fixed schedule, so "late" means older than the longest gap between pulls plus an hour.
-  const stale = fetched && Date.now() - new Date(fetched).getTime() > (maxGapHours() + 1) * 3600 * 1000;
+function header(board, sources) {
+  const { fetched, failing, stale } = boardFreshness(board, sources);
   // Shown only when something is wrong; normally the header is just the board name.
   const status = !fetched ? 'waiting for first sync'
     : (failing.length || stale) ? `<span class="warn">refresh delayed</span> · updated ${dayTimeFmt.format(new Date(fetched))}` : '';
-  return `<header><div class="ht"><h1>${esc(b.title)}</h1></div>
+  return `<header><div class="ht"><h1>${esc(BOARDS[board].title)}</h1></div>
 ${status ? `<div class="hr"><p class="sub">${status}</p></div>` : ''}</header>`;
 }
 
@@ -189,12 +194,15 @@ function salesBoard(s, win) {
 ${mtgGrid}</div>
 </section>`;
 
-  const sMax = Math.max(1, ...s.sources.map((x) => x.n));
-  const srcRows = s.sources.map((x) => `<span style="color:${x.other ? '#a1a1a1' : '#eaeaea'}">${esc(x.name)}</span><div class="bar ${x.other ? 'l' : 'g'}" style="width:${Math.max(1, (x.n / sMax) * 100).toFixed(1)}%"></div><span class="r">${x.n}</span>`).join('');
+  // Name, bar, count; the "Other" row is greyed.
+  const barRows = (rows) => {
+    const mx = Math.max(1, ...rows.map((x) => x.n));
+    return rows.map((x) => `<span style="color:${x.other ? '#a1a1a1' : '#eaeaea'}">${esc(x.name)}</span><div class="bar ${x.other ? 'l' : 'g'}" style="width:${Math.max(1, (x.n / mx) * 100).toFixed(1)}%"></div><span class="r">${x.n}</span>`).join('');
+  };
+  const srcRows = barRows(s.sources);
   const prevMon = MONTHS[Number(win.prevMonthStart.slice(5, 7)) - 1];
   const sat = s.apptSat;
-  const satMax = sat ? Math.max(1, ...sat.rows.map((x) => x.n)) : 1;
-  const satRows = sat ? sat.rows.map((x) => `<span style="color:${x.other ? '#a1a1a1' : '#eaeaea'}">${esc(x.name)}</span><div class="bar ${x.other ? 'l' : 'g'}" style="width:${Math.max(1, (x.n / satMax) * 100).toFixed(1)}%"></div><span class="r">${x.n}</span>`).join('') : '';
+  const satRows = sat ? barRows(sat.rows) : '';
   const satBody = !sat ? '<span class="sub">waiting for Zoho</span>' : satRows || `<span class="sub">No appointments sat in ${prevMon}</span>`;
   const bottom = `<section style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:24px;flex-grow:1;min-height:0">
 <div class="card panel" style="gap:10px"><div class="ph"><h2 class="lbl">Lead sources · last 4 weeks</h2><span class="sub">${s.sourcesTotal} leads since ${md(win.weeks[0])}</span></div>
@@ -214,11 +222,9 @@ function pipelineBoard(p, win) {
   const newTile = nd
     ? `<div class="card kpi"><p class="lbl">New deals · ${MONTHS[curM - 1]} to date</p><p class="big">${nd.n}</p><p class="sub">${delta(nd.n, nd.prevSame, `vs ${prevMonth} 1–${nd.day}`)} · ${nd.std} standard, ${nd.svc} service</p></div>`
     : `<div class="card kpi"><p class="lbl">New deals · ${MONTHS[curM - 1]} to date</p><p class="big">–</p><p class="sub">waiting for Zoho</p></div>`;
-  const avgStd = p.ytdStdN ? p.ytdStdAmt / p.ytdStdN : 0;
-  const avgSvc = p.ytdSvcN ? p.ytdSvcAmt / p.ytdSvcN : 0;
   const kpis = `<div class="sec"><p class="grp"><i style="background:#71a62b"></i>Month &amp; year to date</p><section class="kpis">
 ${newTile}
-<div class="card kpi gold"><p class="lbl">Avg deal size · ${win.today.slice(0, 4)}</p><p class="big" style="font-size:76px">${money(avgStd)}</p><p class="sub">Standard pipeline, ${p.ytdStdN} won · service avg ${money(avgSvc)}</p></div>
+<div class="card kpi gold"><p class="lbl">Avg deal size · ${win.today.slice(0, 4)}</p><p class="big" style="font-size:76px">${money(p.avgStd)}</p><p class="sub">Standard pipeline, ${p.ytdStdN} won · service avg ${money(p.avgSvc)}</p></div>
 <div class="card kpi"><p class="lbl">Closed won · ${MONTHS[curM - 1]} to date</p><p class="big" style="font-size:76px">${money(p.mtdAmt)}</p><p class="sub">${p.mtdN} deals · ${p.mtdStdN} standard, ${p.mtdSvcN} service</p></div>
 <div class="card kpi green"><p class="lbl">Closed won · ${win.today.slice(0, 4)}</p><p class="big" style="font-size:76px">${money(p.ytdAmt)}</p><p class="sub">${p.ytdN} deals${p.prevAmt != null ? ` · ${MONTHS[curM - 2]} was ${money(p.prevAmt)}` : ''}</p></div>
 </section></div>`;
@@ -241,18 +247,11 @@ ${newTile}
     return `<div class="col" style="padding:0 ${colPad}px"><p class="num" style="font-size:14px;position:relative;z-index:1;text-shadow:0 0 4px #1d1d1d,0 0 4px #1d1d1d${mtd ? ';color:#ffdb05' : ''}">${money(m.std + m.svc)}</p>${hv ? `<div class="y" style="height:${hv}px;border-radius:4px 4px 0 0"></div>` : ''}${hs ? `<div class="vg" style="height:${hs}px;${hv ? '' : 'border-radius:4px 4px 0 0'}"></div>` : ''}</div>`;
   }).join('');
 
-  // Linear trend (least squares) over completed months only; the month-to-date month is left out.
-  const done = p.months.slice(0, n - 1).map((m) => m.std + m.svc);
+  // Linear trend over completed months only (metrics.js monthTrend).
   let trendSvg = '';
   let trendKey = '';
-  if (done.length >= 3) {
-    const k = done.length;
-    const mx = (k - 1) / 2;
-    const my = done.reduce((s, v) => s + v, 0) / k;
-    let num = 0, den = 0;
-    done.forEach((v, i) => { num += (i - mx) * (v - my); den += (i - mx) ** 2; });
-    const slope = num / den;
-    const at = (i) => my + slope * (i - mx);
+  if (p.trend) {
+    const { months: k, slope, at } = p.trend;
     const y = (v) => Math.max(0, Math.min(plotH, plotH - (v / scaleMax) * plotH)).toFixed(1);
     const x = (i) => (((i + 0.5) / n) * 1000).toFixed(1);
     trendSvg = `<svg aria-hidden="true" viewBox="0 0 1000 ${plotH}" preserveAspectRatio="none" style="position:absolute;left:0;bottom:0;width:100%;height:${plotH}px;overflow:visible;pointer-events:none"><line x1="${x(0)}" y1="${y(at(0))}" x2="${x(k - 1)}" y2="${y(at(k - 1))}" stroke="#ffffff" stroke-width="3" stroke-dasharray="10 8" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>`;
@@ -387,7 +386,7 @@ function renderBoard(board, metrics, sources, opts = {}) {
     : board === 'middle' ? pipelineBoard(metrics.pipeline, metrics.win)
       : opsBoard(metrics.ops, metrics.win);
   // With a QR, the bottom-right card gets extra right padding so nothing sits under the code.
-  return `${header(board, metrics, sources, opts)}<main${opts.qr ? ' class="hasqr"' : ''}>${body}</main>${qrBlock(opts.qr)}`;
+  return `${header(board, sources)}<main${opts.qr ? ' class="hasqr"' : ''}>${body}</main>${qrBlock(opts.qr)}`;
 }
 
 const CLIENT_JS = `
@@ -430,4 +429,4 @@ function renderPage(board, metrics, sources, pollMs, opts = {}) {
 <body><div id="stage">${renderBoard(board, metrics, sources, opts)}</div>${flares ? '<div id="flares" aria-hidden="true"></div>' : ''}<script>${CLIENT_JS.replace('POLL_MS', String(pollMs))}${flares ? flare.BURST_JS + FLARE_JS.replace('FLARE_SINCE', String(opts.flareSince)) : ''}</script></body></html>`;
 }
 
-module.exports = { BOARDS, renderPage, renderBoard, FONTS, flowChart, FLOW_IN, FLOW_OUT };
+module.exports = { BOARDS, boardFreshness, renderPage, renderBoard, FONTS, flowChart, FLOW_IN, FLOW_OUT };

@@ -3,21 +3,20 @@
 // swipe left/right (or tap a tab) to change screens. Tap any number to see the records
 // behind it (src/drill.js), loaded on demand into a sheet that slides up.
 
-const { BOARDS, FONTS, flowChart, FLOW_IN, FLOW_OUT } = require('./render');
+const { BOARDS, boardFreshness, FONTS, flowChart, FLOW_IN, FLOW_OUT } = require('./render');
 const { addDays } = require('./metrics');
-const { nextSlot, maxGapHours, slotLabel } = require('./schedule');
+const { nextSlot, slotLabel } = require('./schedule');
 const { MONTHS, DAYS, esc, sum, md, dnum, weekLabel, money, delta, avg, fmtAvg, dayTimeFmt } = require('./format');
-const { OTHER } = require('./drill');
+const { OTHER, sortKey } = require('./drill');
 const flare = require('./flare');
 
 const TABS = [['left', 'Inside Sales'], ['middle', 'Pipeline'], ['right', 'Operations']];
 
 const CSS = `
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;background:#141414;color:#fff;font-family:Inter,Verdana,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
+html,body{margin:0;height:100%;color:#fff;font-family:Inter,Verdana,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
 html{background:#141414}
-body{background:transparent}
-body{display:flex;flex-direction:column;height:100dvh}
+body{background:transparent;display:flex;flex-direction:column;height:100dvh}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;text-align:inherit;cursor:pointer}
 .top{flex-shrink:0;position:relative;border-bottom:1px solid #2a2a2a;padding:calc(env(safe-area-inset-top) + 12px) 16px 0}
 .top::before{content:'';position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,rgba(113,166,43,.6),rgba(244,156,32,.45));opacity:.8}
@@ -104,7 +103,6 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;te
 .recs .sb{font-size:11.5px;color:#a1a1a1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
 .recs .rt{text-align:right;flex-shrink:0;font-size:12px;color:#a1a1a1}
 .recs .rt b{display:block;color:#fff;font-size:14px}
-.recs a .tx::after{content:''}
 .chev{color:#474747;font-size:16px}
 /* FLARE: floating button, emoji picker, confirmation toast */
 .fab{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom) + 16px);z-index:6;background:#e0a33a;color:#1d1d1d;font-weight:700;font-size:14px;letter-spacing:.08em;padding:13px 20px;border-radius:26px;box-shadow:0 4px 16px rgba(0,0,0,.55)}
@@ -141,11 +139,8 @@ const pct = (v, mx) => `${Math.max(1, (v / Math.max(1, mx)) * 100).toFixed(1)}%`
 const waiting = '<div class="card empty">Waiting for Zoho data…</div>';
 
 function status(board, sources) {
-  const b = BOARDS[board];
-  const fetched = b.sources.map((k) => sources[k] && sources[k].fetchedAt).filter(Boolean).sort()[0];
-  const failing = b.sources.some((k) => sources[k] && sources[k].error);
-  const stale = fetched && Date.now() - new Date(fetched).getTime() > (maxGapHours() + 1) * 3600 * 1000;
-  return `${fetched ? `Updated ${dayTimeFmt.format(new Date(fetched))}` : 'Waiting for first sync'}${failing || stale ? ' · <span class="warn">delayed</span>' : ''}<br>Next pull ${slotLabel(nextSlot())}`;
+  const { fetched, failing, stale } = boardFreshness(board, sources);
+  return `${fetched ? `Updated ${dayTimeFmt.format(new Date(fetched))}` : 'Waiting for first sync'}${failing.length || stale ? ' · <span class="warn">delayed</span>' : ''}<br>Next pull ${slotLabel(nextSlot())}`;
 }
 
 // Horizontal bar rows; each row opens its drill.
@@ -201,8 +196,7 @@ function pipelinePane(p, win) {
   const curM = p.months.length;
   const nd = p.newDeals;
   const prevMonth = MONTHS[Number(win.prevMonthStart.slice(5, 7)) - 1];
-  const avgStd = p.ytdStdN ? p.ytdStdAmt / p.ytdStdN : 0;
-  const avgSvc = p.ytdSvcN ? p.ytdSvcAmt / p.ytdSvcN : 0;
+  const { avgStd, avgSvc } = p;
   const yr = win.today.slice(0, 4);
   const kpis = `<div class="kpis">
 ${nd ? btn('middle:newdeals', 'card tap', `<p class="lbl">New deals · ${MONTHS[curM - 1]}</p><p class="big">${nd.n}</p><p class="sub">${delta(nd.n, nd.prevSame, `vs ${prevMonth} 1–${nd.day}`)}<br>${nd.std} std, ${nd.svc} service</p>`)
@@ -214,15 +208,8 @@ ${btn('middle:ytd', 'card tap green', `<p class="lbl">Closed won · ${yr}</p><p 
 ${btn('middle:avg~svc', 'card tap', `<div class="ph" style="margin:0"><h2>Service avg deal size</h2><span class="more">${money(avgSvc)} · ${p.ytdSvcN} won ›</span></div>`)}`;
 
   const mMax = Math.max(1, ...p.months.map((m) => m.std + m.svc));
-  const done = p.months.slice(0, curM - 1).map((m) => m.std + m.svc);
-  let trend = '';
-  if (done.length >= 3) {
-    const k = done.length, mx = (k - 1) / 2, my = sum(done) / k;
-    let num = 0, den = 0;
-    done.forEach((v, i) => { num += (i - mx) * (v - my); den += (i - mx) ** 2; });
-    const slope = num / den;
-    trend = `<p class="sub" style="margin-top:8px">Trend ${MONTHS[0]}–${MONTHS[k - 1]}: <b style="color:#fff">${slope >= 0 ? '+' : '−'}${money(Math.abs(slope))}/mo</b> (completed months)</p>`;
-  }
+  const tr = p.trend;
+  const trend = tr ? `<p class="sub" style="margin-top:8px">Trend ${MONTHS[0]}–${MONTHS[tr.months - 1]}: <b style="color:#fff">${tr.slope >= 0 ? '+' : '−'}${money(Math.abs(tr.slope))}/mo</b> (completed months)</p>` : '';
   const monthRows = [...p.months].reverse().map((m) => {
     const tot = m.std + m.svc, mtd = m.m === curM;
     return btn(`middle:month~${m.m}`, 'tap hb', `<span class="nm"${mtd ? ' style="color:#ffdb05"' : ''}>${MONTHS[m.m - 1]}${mtd ? '*' : ''}</span><span class="bar"><span class="g" style="width:${(m.std / mMax) * 100}%"></span><span class="y" style="width:${(m.svc / mMax) * 100}%"></span></span><span class="v">${money(tot)}<small>${m.nStd + m.nSvc}</small></span>`);
@@ -403,7 +390,7 @@ function renderMobile(metrics, sources, pollMs, { fragment = false } = {}) {
 <button type="button" class="fab" id="fab" aria-haspopup="true" aria-expanded="false" aria-controls="picker">FLARE</button>
 <div class="picker" id="picker" role="menu"><p id="pk-to"></p><div class="emo">${flare.EMOJI.map(emoBtn).join('')}${Object.entries(flare.CUSTOM).map(([k, v]) => `<button type="button" role="menuitem" data-flare="${k}" aria-label="Send ${esc(v.label)}"><img src="${v.src}" alt=""></button>`).join('')}</div>${flare.seasonal().map((x) => `<h3>${esc(x.name)}</h3><div class="emo">${x.emoji.map(emoBtn).join('')}</div>`).join('')}</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script>var FLARE_PICS=${JSON.stringify(Object.fromEntries(Object.entries(flare.CUSTOM).map(([k, v]) => [k, v.src])))};${CLIENT_JS.replace('POLL_MS', String(pollMs)).replace('TITLES', JSON.stringify(TABS.map(([k]) => BOARDS[k].title)))}</script></body></html>`;
+<script>var FLARE_PICS=${JSON.stringify(flare.IMG_SRC)};${CLIENT_JS.replace('POLL_MS', String(pollMs)).replace('TITLES', JSON.stringify(TABS.map(([k]) => BOARDS[k].title)))}</script></body></html>`;
 }
 
 const MAX_RECS = 500;
@@ -417,8 +404,7 @@ function renderDrill(d) {
   const shown = d.records.slice(0, MAX_RECS);
   const recs = shown.map((r, i) => {
     const inner = `<span class="tx"><div class="nm">${esc(r.name)}</div><div class="sb">${esc(r.sub || '')}</div></span><span class="rt">${r.amount ? `<b>${money(r.amount)}</b>${esc(r.day || '')}` : `<b>${esc(r.day || '')}</b>${esc(r.time || '')}`}</span>${r.href ? '<span class="chev">›</span>' : ''}`;
-    const t = r.t ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(r.t) ? `${r.t}T12:00:00Z` : r.t).getTime() || 0 : 0;
-    return `<li data-date="${t}" data-amount="${Number(r.amount) || 0}" data-i="${shown.length - i}">${r.href ? `<a href="${esc(r.href)}" target="_blank" rel="noopener noreferrer">${inner}</a>` : `<div class="rc">${inner}</div>`}</li>`;
+    return `<li data-date="${sortKey(r.t)}" data-amount="${Number(r.amount) || 0}" data-i="${shown.length - i}">${r.href ? `<a href="${esc(r.href)}" target="_blank" rel="noopener noreferrer">${inner}</a>` : `<div class="rc">${inner}</div>`}</li>`;
   }).join('');
   const sort = hasAmt ? `<div class="sort"><button type="button" data-sort="amount" aria-pressed="${d.byAmount}">Largest</button><button type="button" data-sort="date" aria-pressed="${!d.byAmount}">Newest</button></div>` : '';
   return `<div data-title="${esc(d.title)}" hidden></div>
