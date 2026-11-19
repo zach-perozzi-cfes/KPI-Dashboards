@@ -141,7 +141,7 @@ tr.now{color:#ffdb05;font-weight:700}tr.now th{color:#ffdb05;font-weight:700}
 .qr{position:absolute;right:52px;bottom:44px;line-height:0;padding:6px;border:2px solid #71a62b;border-radius:6px;background:#1a1a1a}
 .qr svg{display:block}
 .qr::before{content:'SCAN';position:absolute;left:-10px;right:-10px;bottom:100%;margin-bottom:6px;text-align:center;font-size:14px;line-height:1;font-weight:700;letter-spacing:.22em;text-indent:.22em;color:#71a62b}
-.hasqr>section:last-child>.card:last-child{padding-right:176px}
+.hasqr>section:last-child>.card:last-child{padding-right:144px}
 `;
 
 function header(board, sources) {

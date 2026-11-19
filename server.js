@@ -110,7 +110,7 @@ function boardQr(req, board) {
     if (qrCache.size > 30) qrCache.clear();
     // Inverted code: CFES orange modules on the card's near-black (about 8:1 contrast). The border
     // matches the card, so only the ~46px pattern shows, inside a green border. iPhone Camera and Google Lens read inverted codes.
-    qrCache.set(url, qrSvg(url, { level: 'L', scale: 4, quiet: 2, dark: '#ffffff', light: '#1a1a1a', label: 'Scan to open this screen on your phone' }));
+    qrCache.set(url, qrSvg(url, { level: 'L', scale: 3, quiet: 4, dark: '#ffffff', light: '#1a1a1a', label: 'Scan to open this screen on your phone' }));
   }
   return qrCache.get(url);
 }
