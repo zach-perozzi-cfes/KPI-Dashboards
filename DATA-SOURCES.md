@@ -94,17 +94,15 @@ Sources: `leads`, `calls`, `meetings`, `apptSat` (Zoho CRM).
 - **Per day / "light":** the Per day row is the daily total. A day still ahead is marked **light** (orange) when it has fewer than half the meetings of the busiest day, as long as the busiest day has at least 4.
 - **Header ("23 total · 6 still ahead"):** the grid total, and how many of those meetings fall on today or later.
 
-### Lead sources · last 4 weeks (bar chart)
-- Leads with `Created_Time` in the last 4 weeks, grouped by `Lead_Source` (blank becomes "None").
-- The top 8 sources each get a bar. The rest are combined into one grey "Other (n sources)" bar.
-- **Header:** the total number of leads in those 4 weeks, and the first date of the range.
-
-### Appointments sat by source · last month (bar chart)
-- **What it counts:** Deals whose `Appointment_Date` falls in last month (for example, all of October when viewed in November), grouped by `Lead_Source`.
+### Leads → appointments sat, by source · last month (overlaid bars)
+One card showing how last month's leads from each source turned into sat appointments. The phone view still shows the two halves as separate cards (lead sources over the last 4 weeks, appointments sat last month).
+- **Left (leads):** Leads with `Created_Time` in last month (for example, all of October when viewed in November), grouped by `Lead_Source` (blank becomes "None"). Each source's leads are a pale, outlined bar. The lead pull reaches back to last month's 1st for this.
+- **Right (sat):** Deals whose `Appointment_Date` falls in last month, grouped by `Lead_Source`, counting only the ones that sat (see below). They're a solid green bar drawn inside the lead bar, on the same scale, so the empty part of the lead bar is the drop-off.
 - **What counts as "sat":** `Scheduled_Appointment_Quality` (shown in CRM as "Appointment Quality") is filled in and isn't "D (Not Good, Questionable)". A deal with no quality score is left out.
 - **Where the rule came from:** CRM has no field that marks an appointment as sat. This rule was fitted to the CRM report "Appointments Sat by Source - Last Month". For October 2026 it matched Tesla 10, Phone 9, Website - Quote Page 7 and Events & Seminars 3 exactly. It gave DemandIQ 7 (report 6) and Duke Energy Program 5 (report 6). The report's own filter couldn't be read through the API.
-- The top 8 sources each get a bar. The rest are combined into one grey "Other (n sources)" bar.
-- **Header:** the total number of appointments sat last month.
+- **Sat rate:** sat ÷ leads for the same source and month. It shows green when it's at or above the overall rate. A sat appointment can come from a lead created in an earlier month, so a source can have more sat than leads. Its sat bar then runs past the lead bar and the rate shows "–" instead of a number over 100%.
+- **Order and "Other":** sources are sorted by lead count. The top 8 each get a row and the rest are combined into one grey "Other (n sources)" row.
+- **Header:** last month's total leads, total sat and the overall sat rate.
 
 ---
 

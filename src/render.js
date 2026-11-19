@@ -81,6 +81,14 @@ h2.lbl{font-size:21px;letter-spacing:-.01em}
 .hb{display:grid;align-items:center;font-size:16px}
 .hb .bar{height:18px;border-radius:3px}
 .r{text-align:right;font-weight:700}
+.fnl{flex-grow:1;min-height:0;display:grid;grid-template-columns:220px minmax(0,1fr) 64px 56px 96px;gap:0 20px;align-items:center;align-content:space-evenly;font-size:16px}
+.fn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fh{font-size:13px;color:#a1a1a1;font-weight:400}
+.ft{position:relative;height:20px}
+.fbl,.fbs{position:absolute;left:0;border-radius:3px}
+.fbl{top:0;height:20px;background:rgba(113,166,43,.32);border:1px solid rgba(140,198,63,.6)}
+.fbs{top:5px;height:10px;background:#8cc63f}
+.fbl.o{background:rgba(234,234,234,.12);border-color:rgba(234,234,234,.4)}.fbs.o{background:#eaeaea}
 table{width:100%;border-collapse:collapse;font-size:18px}
 th,td{padding:12px 0;text-align:right}
 th:first-child{text-align:left;font-weight:400;color:#eaeaea}
@@ -136,7 +144,29 @@ function qrBlock(svg) {
   return svg ? `<div class="qr">${svg}</div>` : '';
 }
 
+const pct = (a, b) => (b ? `${Math.round((a / b) * 100)}%` : '–');
+
 function waiting(msg = 'Waiting for Zoho data…') { return `<div class="card empty">${esc(msg)}</div>`; }
+
+// Lead source vs appointments sat (Inside Sales board): per source, a pale bar for last month's
+// leads with a solid bar for its sat appointments drawn over it on the same scale, so the gap
+// between them is the drop-off. A source can sit more than it got new leads (appointments from
+// older leads), so the sat bar can run past the lead bar; its rate then shows as "–".
+function funnelRows(f) {
+  const mx = Math.max(1, ...f.rows.flatMap((x) => [x.leads, x.sat]));
+  const overall = f.leads ? f.sat / f.leads : 0;
+  const w = (n) => `${((n / mx) * 100).toFixed(1)}%`;
+  const head = '<span></span><span></span><span class="fh r">Leads</span><span class="fh r">Sat</span><span class="fh r">Sat rate</span>';
+  const rows = f.rows.map((x) => {
+    const rate = x.leads && x.sat <= x.leads ? x.sat / x.leads : null;
+    const rateTxt = rate == null ? '–' : pct(x.sat, x.leads);
+    const rateCol = rate == null ? '#a1a1a1' : rate >= overall ? '#8cc63f' : '#eaeaea';
+    return `<span class="fn" style="color:${x.other ? '#a1a1a1' : '#eaeaea'}">${esc(x.name)}</span>`
+      + `<div class="ft">${x.leads ? `<div class="fbl${x.other ? ' o' : ''}" style="width:${w(x.leads)}"></div>` : ''}${x.sat ? `<div class="fbs${x.other ? ' o' : ''}" style="width:${w(x.sat)}"></div>` : ''}</div>`
+      + `<span class="r">${x.leads}</span><span class="r">${x.sat}</span><span class="r" style="color:${rateCol}">${rateTxt}</span>`;
+  }).join('');
+  return `<div class="fnl">${head}${rows}</div>`;
+}
 
 // ---------------- LEFT: Inside Sales ----------------
 function salesBoard(s, win) {
@@ -194,21 +224,19 @@ function salesBoard(s, win) {
 ${mtgGrid}</div>
 </section>`;
 
-  // Name, bar, count; the "Other" row is greyed.
-  const barRows = (rows) => {
-    const mx = Math.max(1, ...rows.map((x) => x.n));
-    return rows.map((x) => `<span style="color:${x.other ? '#a1a1a1' : '#eaeaea'}">${esc(x.name)}</span><div class="bar ${x.other ? 'l' : 'g'}" style="width:${Math.max(1, (x.n / mx) * 100).toFixed(1)}%"></div><span class="r">${x.n}</span>`).join('');
-  };
-  const srcRows = barRows(s.sources);
+  // Last month's leads funnelling into appointments sat, by lead source (a Sankey-style funnel).
+  // Left: every lead, stacked by source. Right: the appointments sat from each source, on the
+  // same scale, gathered into a narrower column. Each band narrows from a source's leads to its
+  // sat appointments, so the drop-off reads left to right.
   const prevMon = MONTHS[Number(win.prevMonthStart.slice(5, 7)) - 1];
-  const sat = s.apptSat;
-  const satRows = sat ? barRows(sat.rows) : '';
-  const satBody = !sat ? '<span class="sub">waiting for Zoho</span>' : satRows || `<span class="sub">No appointments sat in ${prevMon}</span>`;
-  const bottom = `<section style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:24px;flex-grow:1;min-height:0">
-<div class="card panel" style="gap:10px"><div class="ph"><h2 class="lbl">Lead sources · last 4 weeks</h2><span class="sub">${s.sourcesTotal} leads since ${md(win.weeks[0])}</span></div>
-<div class="hb" style="grid-template-columns:240px minmax(0,1fr) 48px;gap:7px 16px">${srcRows || '<span class="sub">No leads yet</span>'}</div></div>
-<div class="card panel" style="gap:10px"><div class="ph"><h2 class="lbl">Appointments sat by source · ${prevMon}</h2><span class="sub">${sat ? `${sat.total} sat` : ''}</span></div>
-<div class="hb" style="grid-template-columns:220px minmax(0,1fr) 48px;gap:7px 16px">${satBody}</div></div>
+  const f = s.funnel;
+  let funnelBody;
+  if (!f) funnelBody = '<span class="sub">waiting for Zoho</span>';
+  else if (!f.rows.length) funnelBody = `<span class="sub">No leads or appointments in ${prevMon}</span>`;
+  else funnelBody = funnelRows(f);
+  const bottom = `<section style="display:flex;flex-direction:column;flex-grow:1;min-height:0">
+<div class="card panel" style="gap:10px;flex-grow:1"><div class="ph"><h2 class="lbl">Leads → appointments sat, by source · ${prevMon}</h2><span class="key"><span class="sw" style="background:rgba(113,166,43,.32);border:1px solid rgba(140,198,63,.6)"></span>Leads</span><span class="key"><span class="sw g" style="background:#8cc63f"></span>Appointments sat</span><span class="sub">${f ? `${f.leads} leads · ${f.sat} sat · ${pct(f.sat, f.leads)} overall` : ''}</span></div>
+${funnelBody}</div>
 </section>`;
   return kpis + charts + bottom;
 }

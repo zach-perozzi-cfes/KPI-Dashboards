@@ -167,9 +167,11 @@ async function deskTicketsSince(dateStr, now) {
 function sourceDefs(win) {
   const since = `${win.fetchFrom}T00:00:00-05:00`;
   const until = `${win.fetchTo}T23:59:59-05:00`;
+  const leadsSince = `${win.prevMonthStart < win.fetchFrom ? win.prevMonthStart : win.fetchFrom}T00:00:00-05:00`;
   return {
     // id, names and owner are only used by the phone drill-down (/m); the boards show counts.
-    leads: () => coqlAll(`select id, First_Name, Last_Name, Owner, Created_Time, Lead_Source from Leads where Created_Time >= '${since}'`)
+    // From last month's 1st when that is earlier, so the lead-to-sat funnel has all of last month.
+    leads: () => coqlAll(`select id, First_Name, Last_Name, Owner, Created_Time, Lead_Source from Leads where Created_Time >= '${leadsSince}'`)
       .then((rows) => rows.map((r) => ({ id: r.id, t: r.Created_Time, src: r.Lead_Source || 'None', name: [r.First_Name, r.Last_Name].filter(Boolean).join(' '), owner: ownerName(r.Owner) }))),
     // Deals whose appointment was last month; metrics.js keeps the ones that sat.
     apptSat: () => coqlAll(`select id, Deal_Name, Owner, Appointment_Date, Lead_Source, Scheduled_Appointment_Quality from Deals where Appointment_Date between '${win.prevMonthStart}T00:00:00-05:00' and '${win.prevMonthEnd}T23:59:59-05:00'`)

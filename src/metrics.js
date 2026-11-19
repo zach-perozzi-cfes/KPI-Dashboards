@@ -150,8 +150,8 @@ function sales(src, win) {
   // falls in last month and Appointment Quality is filled in and not "D". This rule was
   // fitted to the "Appointments Sat by Source - Last Month" report in CRM.
   let apptSat = null;
+  const satCounts = new Map();
   if (src.apptSat && src.apptSat.data) {
-    const satCounts = new Map();
     for (const r of src.apptSat.data) {
       const d = nyDate(r.t);
       if (!inRange(d, win.prevMonthStart, win.monthStart)) continue;
@@ -162,8 +162,26 @@ function sales(src, win) {
     apptSat = { rows: topWithOther(satSorted), total: sumBy(satSorted, (x) => x[1]) };
   }
 
+  // Last month's leads vs appointments sat, per lead source (the board's funnel card). Both
+  // sides cover the same month. A sat appointment can come from a lead created earlier, so a
+  // source can show more sat than leads.
+  let funnel = null;
+  if (apptSat) {
+    const leadCounts = new Map();
+    for (const l of leadDates) {
+      if (inRange(l.d, win.prevMonthStart, win.monthStart)) leadCounts.set(l.src, (leadCounts.get(l.src) || 0) + 1);
+    }
+    const names = [...new Set([...leadCounts.keys(), ...satCounts.keys()])];
+    const all = names.map((name) => ({ name, leads: leadCounts.get(name) || 0, sat: satCounts.get(name) || 0 }))
+      .sort((a, b) => b.leads - a.leads || b.sat - a.sat || a.name.localeCompare(b.name));
+    const top = all.slice(0, 8);
+    const rest = all.slice(8);
+    if (rest.length) top.push({ name: `Other (${rest.length} source${rest.length > 1 ? 's' : ''})`, leads: sumBy(rest, (x) => x.leads), sat: sumBy(rest, (x) => x.sat), other: true });
+    funnel = { rows: top, leads: sumBy(all, (x) => x.leads), sat: sumBy(all, (x) => x.sat) };
+  }
+
   return {
-    apptSat,
+    apptSat, funnel,
     leadsWk, callsWk, mtgWk,
     callsOut: thisWeekCalls.filter((x) => x.out).length,
     callsIn: thisWeekCalls.filter((x) => !x.out).length,
