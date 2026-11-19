@@ -70,11 +70,11 @@ Sources: `leads`, `calls`, `meetings`, `apptSat` (Zoho CRM).
 
 ### Calls logged (tile)
 - **Big number:** the reps' calls with `Call_Start_Time` in this week (Mon–Sun).
-- **"X out / Y in":** a call counts as **out** when `Call_Type` contains "out" (Outbound). **Everything else counts as "in"**, which means Missed calls are counted as inbound.
+- **"X out / Y in" (phone view only):** a call counts as **out** when `Call_Type` contains "out" (Outbound). **Everything else counts as "in"**, which means Missed calls are counted as inbound.
 
 ### Meetings this week (tile)
 - **Big number:** CRM Events (Meetings) with `Start_DateTime` in this week (Mon–Sun). This counts **every** Event in CRM, whatever kind of meeting it is and whoever owns it, Quintin Driskell included.
-- **Arrow and 4-wk avg:** worked out the same way as the Leads tile.
+- **Arrow and 4-wk avg:** worked out the same way as the Leads tile. The TV shows only the arrow; the 4-wk avg is on the phone view.
 
 ### Meetings booked · next week (green tile)
 - Events with `Start_DateTime` on next Monday through Friday. Every owner is included.
@@ -92,7 +92,7 @@ Sources: `leads`, `calls`, `meetings`, `apptSat` (Zoho CRM).
 - **Shading:** a cell is darker green the more meetings it holds, relative to the busiest cell.
 - **Today:** the yellow band marks today's column. Days already past are faded.
 - **Per day / "light":** the Per day row is the daily total. A day still ahead is marked **light** (orange) when it has fewer than half the meetings of the busiest day, as long as the busiest day has at least 4.
-- **Header ("23 total · 6 still ahead"):** the grid total, and how many of those meetings fall on today or later.
+- **Total column and Per day row:** each rep's week total and each day's total. Both are outlined so they stand out, and the grand total (bottom right) is the grid total.
 
 ### Leads → appointments sat, by source · last month (overlaid bars)
 One card showing how last month's leads from each source turned into sat appointments. The phone view still shows the two halves as separate cards (lead sources over the last 4 weeks, appointments sat last month).
@@ -112,31 +112,30 @@ Sources: `openDeals`, `wonDeals`, `newDeals` (Zoho CRM Deals).
 
 ### New deals · month to date (tile)
 - **Big number:** Deals with `Created_Time` from the 1st of this month through today, in any stage, open or closed.
-- **Arrow:** compared with Deals created over the same days of last month. For example, on Nov 12 it compares with Oct 1–12.
-- **"X standard, Y service":** split by the CFSS rule.
+- **Arrow and "X standard, Y service" (phone view only):** compared with Deals created over the same days of last month (for example, on Nov 12 it compares with Oct 1–12), and split by the CFSS rule. The TV shows only the big number.
 
 ### Avg deal size · year (gold tile)
 - **Big number:** for **standard** deals only, the total `Amount` of Closed Won deals this year divided by how many there are. Closed Won means `Stage = 'Closed Won'` and `Closing_Date` this year.
-- **"Service avg":** the same calculation for service (CFSS) deals.
+- **"Service avg" (phone view only):** the same calculation for service (CFSS) deals.
 
 ### Closed won · month to date (tile)
 - **Big number:** the total `Amount` of Closed Won deals whose `Closing_Date` is in this month.
-- **Smaller line:** the deal count, split by the CFSS rule.
+- **Smaller line (phone view only):** the deal count, split by the CFSS rule.
 
 ### Closed won · year (green tile)
 - **Big number:** the total `Amount` of Closed Won deals whose `Closing_Date` is in this year.
-- **"Oct was $X":** last month's total.
+- **Deal count and "Oct was $X" (phone view only):** this year's deal count and last month's total.
 
 ### Closed-won revenue by month (bar chart)
 - **Bars:** one stacked bar per month from January through this month, built from Closed Won deals by `Closing_Date` month and summing `Amount`.
   - **Green:** standard.
   - **Yellow:** service (CFSS).
   - **Label above each bar:** that month's total.
-  - **Current month:** marked with * and shown in yellow, because it is month to date.
+  - **Current month:** shown in yellow, because it is month to date.
 - **Deals won row:** the number of Closed Won deals in each month.
 - **Dashed white trend line:** a straight-line (least-squares) fit through the monthly totals of **completed** months only. The current month is left out. The legend shows the slope in dollars per month.
 
-### Open deals by stage & department (grid)
+### Open deals by stage & department (grid, phone view only)
 - **What it counts:** every Deal whose `Stage` is **not** one of Closed Won, Closed Lost, Closed Deferred, Closed Disqualified, Closed Hold or Appointment Cancelled. There is no date filter, so open deals of any age are included.
 - **Rows:** `Stage`, in the order set by `STAGE_ORDER` in `src/metrics.js`. A stage not in that list sorts to the bottom.
 - **Columns:** the deal's CRM **Layout**, which stands in for the department. Short labels:

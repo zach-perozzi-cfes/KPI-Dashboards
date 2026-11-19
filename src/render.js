@@ -73,6 +73,8 @@ h2.lbl{font-size:21px;letter-spacing:-.01em}
 /* Total column: its own tinted band with bigger numbers, so each rep's week total stands out. */
 .mx .totband{position:absolute;z-index:-1;grid-row:1 / -1;inset:-5px -5px;border:2px solid rgba(140,198,63,.6);border-radius:9px;background:rgba(113,166,43,.16)}
 .mh.tot{color:#8cc63f}
+/* Per day row: outlined across the day and Total columns, like the column bands. */
+.mx .dayband{position:absolute;z-index:-1;grid-column:2 / -1;inset:-5px -5px;border:2px solid rgba(234,234,234,.45);border-radius:9px;background:rgba(255,255,255,.04)}
 .mt.tot{font-size:22px;font-weight:800;color:#fff}
 .mt.tot.all{color:#8cc63f;font-size:24px}
 .g{background:#71a62b}.y{background:#ffdb05}.o{background:#f49c20}.l{background:#eaeaea}
@@ -149,6 +151,8 @@ function qrBlock(svg) {
   return svg ? `<div class="qr">${svg}</div>` : '';
 }
 
+// "▼ 23 vs last week", without last week's count in brackets.
+const short = (d) => d.replace(/ \(\d+\)$/, '');
 const pct = (a, b) => (b ? `${Math.round((a / b) * 100)}%` : '–');
 
 function waiting(msg = 'Waiting for Zoho data…') { return `<div class="card empty">${esc(msg)}</div>`; }
@@ -179,8 +183,8 @@ function salesBoard(s, win) {
   const [, , l2, l3] = s.leadsWk; const [, , c2, c3] = s.callsWk; const [, , m2, m3] = s.mtgWk;
   const kpis = `<div class="sec"><p class="grp"><i style="background:#71a62b"></i>This week</p><section class="kpis">
 <div class="card kpi"><p class="lbl">Leads created</p><p class="big">${l3}</p><p class="sub">${delta(l3, l2)} · 4-wk avg ${fmtAvg(avg(s.leadsWk))}</p></div>
-<div class="card kpi"><p class="lbl">Calls logged</p><p class="big">${c3}</p><p class="sub">${delta(c3, c2)} · ${s.callsOut} out / ${s.callsIn} in</p></div>
-<div class="card kpi"><p class="lbl">Meetings this week</p><p class="big">${m3}</p><p class="sub">${delta(m3, m2)} · 4-wk avg ${fmtAvg(avg(s.mtgWk))}</p></div>
+<div class="card kpi"><p class="lbl">Calls logged</p><p class="big">${c3}</p><p class="sub">${short(delta(c3, c2))}</p></div>
+<div class="card kpi"><p class="lbl">Meetings this week</p><p class="big">${m3}</p><p class="sub">${short(delta(m3, m2))}</p></div>
 <div class="card kpi green"><p class="lbl">Meetings booked · next week</p><p class="big">${s.nextTotal}</p><p class="sub">On the calendar for ${esc(weekLabel(win.nextWs).replace(/, \d{4}$/, ''))}</p></div>
 </section></div>`;
 
@@ -215,18 +219,18 @@ function salesBoard(s, win) {
     : `<span class="mc" style="height:${cellH}px;color:#474747;font-weight:400${fade(i)}">·</span>`)).join('')}<span class="mt tot">${r.n}</span>`).join('');
   const mFoot = `<span class="mr" style="color:#a1a1a1">Per day</span>${g.days.map((d, i) => `<span class="mt"${isLight(d, i) ? ' style="color:#f49c20"' : past(i) ? ' style="color:#474747"' : ''}>${d.n}${isLight(d, i) ? ' · light' : ''}</span>`).join('')}<span class="mt tot all">${g.total}</span>`;
   const band = (g.todayIdx >= 0 ? `<div class="today" style="grid-column:${g.todayIdx + 2} / span 1"></div>` : '')
-    + '<div class="totband" style="grid-column:7 / span 1"></div>';
+    + '<div class="totband" style="grid-column:7 / span 1"></div>'
+    + `<div class="dayband" style="grid-row:${reps.length + 2} / span 1"></div>`;
   const mtgGrid = reps.length
     ? `<div class="mx" style="grid-template-rows:repeat(${reps.length + 2},auto)">${mHead}${mBody}${mFoot}${band}</div>`
     : `<div class="empty" style="font-size:18px">No meetings booked for ${g.upcoming ? 'next' : 'this'} week yet</div>`;
   const mtgTitle = g.upcoming ? 'Meetings next week · by rep' : 'Meetings this week · by rep';
-  const mtgSub = g.upcoming ? `${g.total} booked · week of ${md(g.ws)}` : `${g.total} total · ${g.ahead} still ahead`;
   const dayLbl = (arr) => arr.map((d, i) => `<p>${DAYS[i]} ${dnum(d.day)}</p>`).join('');
 
   const charts = `<section style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;height:340px;flex-shrink:0">
 <div class="card panel"><div class="ph"><h2 class="lbl">Calls per day, this week</h2><span class="key"><span class="sw g"></span>Outbound</span><span class="key"><span class="sw y"></span>Inbound</span></div>
 <div class="cols" style="grid-template-columns:repeat(5,minmax(0,1fr))">${callCols}</div><div class="xl" style="grid-template-columns:repeat(5,minmax(0,1fr))">${dayLbl(s.callDays)}</div></div>
-<div class="card panel"><div class="ph"><h2 class="lbl">${mtgTitle}</h2><span class="sub">${esc(mtgSub)}</span></div>
+<div class="card panel"><div class="ph"><h2 class="lbl">${mtgTitle}</h2></div>
 ${mtgGrid}</div>
 </section>`;
 
@@ -241,7 +245,7 @@ ${mtgGrid}</div>
   else if (!f.rows.length) funnelBody = `<span class="sub">No leads or appointments in ${prevMon}</span>`;
   else funnelBody = funnelRows(f);
   const bottom = `<section style="display:flex;flex-direction:column;flex-grow:1;min-height:0">
-<div class="card panel" style="gap:10px;flex-grow:1"><div class="ph"><h2 class="lbl">Leads → appointments sat, by source · ${prevMon}</h2><span class="key"><span class="sw" style="background:rgba(113,166,43,.32);border:1px solid rgba(140,198,63,.6)"></span>Leads</span><span class="key"><span class="sw g" style="background:#8cc63f"></span>Appointments sat</span><span class="sub">${f ? `${f.leads} leads · ${f.sat} sat · ${pct(f.sat, f.leads)} overall` : ''}</span></div>
+<div class="card panel" style="gap:10px;flex-grow:1"><div class="ph"><h2 class="lbl">Leads → appointments sat, by source · ${prevMon}</h2><span class="key"><span class="sw" style="background:rgba(113,166,43,.32);border:1px solid rgba(140,198,63,.6)"></span>Leads</span><span class="key"><span class="sw g" style="background:#8cc63f"></span>Appointments sat</span><span class="sub" style="display:flex;align-items:baseline;gap:8px">${f ? `<b style="font-size:28px;line-height:1;font-weight:800;color:#8cc63f">${pct(f.sat, f.leads)}</b>overall` : ''}</span></div>
 ${funnelBody}</div>
 </section>`;
   return kpis + charts + bottom;
@@ -252,18 +256,18 @@ function pipelineBoard(p, win) {
   if (!p) return waiting();
   const curM = p.months.length;
   const nd = p.newDeals;
-  const prevMonth = MONTHS[Number(win.prevMonthStart.slice(5, 7)) - 1];
   const newTile = nd
-    ? `<div class="card kpi"><p class="lbl">New deals · ${MONTHS[curM - 1]} to date</p><p class="big">${nd.n}</p><p class="sub">${delta(nd.n, nd.prevSame, `vs ${prevMonth} 1–${nd.day}`)} · ${nd.std} standard, ${nd.svc} service</p></div>`
+    ? `<div class="card kpi"><p class="lbl">New deals · ${MONTHS[curM - 1]} to date</p><p class="big">${nd.n}</p></div>`
     : `<div class="card kpi"><p class="lbl">New deals · ${MONTHS[curM - 1]} to date</p><p class="big">–</p><p class="sub">waiting for Zoho</p></div>`;
   const kpis = `<div class="sec"><p class="grp"><i style="background:#71a62b"></i>Month &amp; year to date</p><section class="kpis">
 ${newTile}
-<div class="card kpi gold"><p class="lbl">Avg deal size · ${win.today.slice(0, 4)}</p><p class="big" style="font-size:76px">${money(p.avgStd)}</p><p class="sub">Standard pipeline, ${p.ytdStdN} won · service avg ${money(p.avgSvc)}</p></div>
-<div class="card kpi"><p class="lbl">Closed won · ${MONTHS[curM - 1]} to date</p><p class="big" style="font-size:76px">${money(p.mtdAmt)}</p><p class="sub">${p.mtdN} deals · ${p.mtdStdN} standard, ${p.mtdSvcN} service</p></div>
-<div class="card kpi green"><p class="lbl">Closed won · ${win.today.slice(0, 4)}</p><p class="big" style="font-size:76px">${money(p.ytdAmt)}</p><p class="sub">${p.ytdN} deals${p.prevAmt != null ? ` · ${MONTHS[curM - 2]} was ${money(p.prevAmt)}` : ''}</p></div>
+<div class="card kpi gold"><p class="lbl">Avg deal size · ${win.today.slice(0, 4)}</p><p class="big" style="font-size:76px">${money(p.avgStd)}</p></div>
+<div class="card kpi"><p class="lbl">Closed won · ${MONTHS[curM - 1]} to date</p><p class="big" style="font-size:76px">${money(p.mtdAmt)}</p></div>
+<div class="card kpi green"><p class="lbl">Closed won · ${win.today.slice(0, 4)}</p><p class="big" style="font-size:76px">${money(p.ytdAmt)}</p></div>
 </section></div>`;
 
-  const plotH = 340;
+  // Tall enough that the chart card fills the space under the top row on its own.
+  const plotH = 490;
   const maxTot = Math.max(1, ...p.months.map((m) => m.std + m.svc));
   const scaleMax = maxTot * 1.12;
   const step = [50e3, 100e3, 250e3, 500e3, 1e6, 2e6, 5e6].find((s) => scaleMax / s <= 4) || 1e7;
@@ -291,26 +295,14 @@ ${newTile}
     trendSvg = `<svg aria-hidden="true" viewBox="0 0 1000 ${plotH}" preserveAspectRatio="none" style="position:absolute;left:0;bottom:0;width:100%;height:${plotH}px;overflow:visible;pointer-events:none"><line x1="${x(0)}" y1="${y(at(0))}" x2="${x(k - 1)}" y2="${y(at(k - 1))}" stroke="#ffffff" stroke-width="3" stroke-dasharray="10 8" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>`;
     trendKey = `<span class="key"><span style="width:24px;border-top:3px dashed #ffffff;display:inline-block"></span>Trend ${MONTHS[0]}–${MONTHS[k - 1]}: ${slope >= 0 ? '+' : '−'}${money(Math.abs(slope))}/mo</span>`;
   }
-  const monthLbls = p.months.map((m, i) => `<p class="sub" style="text-align:center${i === n - 1 ? ';color:#ffdb05' : ''}">${MONTHS[m.m - 1]}${i === n - 1 ? '*' : ''}</p>`).join('');
+  const monthLbls = p.months.map((m, i) => `<p class="sub" style="text-align:center${i === n - 1 ? ';color:#ffdb05' : ''}">${MONTHS[m.m - 1]}</p>`).join('');
   const counts = p.months.map((m, i) => `<p style="margin:0;text-align:center;font-weight:700;font-size:16px${i === n - 1 ? ';color:#ffdb05' : ''}">${m.nStd + m.nSvc}</p>`).join('');
-  const left = `<div class="card panel"><div class="ph"><h2 class="lbl">Closed-won revenue by month</h2><span class="key"><span class="sw g"></span>Standard pipeline</span><span class="key"><span class="sw y"></span>Service (CFSS)</span>${trendKey}</div>
+  const left = `<div class="card panel" style="flex-grow:1"><div class="ph"><h2 class="lbl">Closed-won revenue by month</h2><span class="key"><span class="sw g"></span>Standard pipeline</span><span class="key"><span class="sw y"></span>Service (CFSS)</span>${trendKey}</div>
 <div style="position:relative;height:${plotH + 30}px;display:flex;padding-left:72px">${grid}
 <div style="position:relative;flex-grow:1;display:grid;grid-template-columns:repeat(${n},minmax(0,1fr));gap:0;align-items:end;border-bottom:1px solid #333333">${cols}${trendSvg}</div></div>
-<div style="display:grid;grid-template-columns:72px repeat(${n},minmax(0,1fr));column-gap:0;row-gap:8px;align-items:center"><span></span>${monthLbls}<span style="font-size:13px;color:#a1a1a1">Deals won</span>${counts}</div>
-<p class="sub" style="font-size:13px">* ${MONTHS[n - 1]} is month to date.</p></div>`;
+<div style="display:grid;grid-template-columns:72px repeat(${n},minmax(0,1fr));column-gap:0;row-gap:8px;align-items:center"><span></span>${monthLbls}<span style="font-size:13px;color:#a1a1a1">Deals won</span>${counts}</div></div>`;
 
-  // Open deals: stage (rows) x CRM layout / department (columns), cells shaded by count.
-  const stageName = (s) => s.replace('Post Appointment Questionnaire Completed', 'Post-Appt Questionnaire').replace(/Proposal Review-(\d+)/, 'Proposal Review $1');
-  const L = p.layouts;
-  const gridCols = `minmax(0,1fr) repeat(${L.length},86px) 60px`;
-  const rowH = p.matrix.length > 14 ? 30 : 34;
-  const head = `<span></span>${L.map((l) => `<span style="text-align:center;font-size:14px;color:#eaeaea;font-weight:700;line-height:1.25;white-space:nowrap">${esc(l.short)}<br><span style="color:#a1a1a1;font-weight:400">${l.n}</span></span>`).join('')}<span style="text-align:center;font-size:14px;color:#ffdb05;font-weight:700;line-height:1.25">Total<br><span>${p.openN}</span></span>`;
-  const body = p.matrix.map((r) => `<span style="color:#eaeaea;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(stageName(r.stage))}</span>${r.cells.map((v) => (v
-    ? `<span style="height:${rowH}px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-weight:700;font-size:17px;background:rgba(113,166,43,${(0.18 + 0.72 * (v / p.cellMax)).toFixed(2)})">${v}</span>`
-    : `<span style="height:${rowH}px;display:flex;align-items:center;justify-content:center;color:#474747">·</span>`)).join('')}<span style="text-align:center;font-weight:700;font-size:17px">${r.total}</span>`).join('');
-  const right = `<div class="card panel"><div class="ph"><h2 class="lbl">Open deals by stage &amp; department</h2><span class="sub">CRM layout · deal count</span></div>
-<div style="display:grid;grid-template-columns:${gridCols};gap:5px 8px;align-items:center">${head}${body}</div></div>`;
-  return `${kpis}<section style="display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:24px;flex-grow:1;min-height:0">${left}${right}</section>`;
+  return `${kpis}<section style="display:flex;flex-direction:column;flex-grow:1;min-height:0">${left}</section>`;
 }
 
 // ---------------- RIGHT: Operations ----------------
@@ -319,7 +311,7 @@ function tile(t) {
   const cur = t.wk[3], prev = t.wk[2];
   const mx = Math.max(1, ...t.wk);
   const bars = t.wk.map((v, i) => `<div class="${i === 3 ? 'vg' : 'pw'}" style="height:${v ? `${Math.max(4, Math.round((v / mx) * 100))}%` : '2px'}"></div>`).join('');
-  return `<div class="card tile"><p class="lbl">${esc(t.label)}</p><div class="tl"><p class="big">${cur}</p><p class="sub">${delta(cur, prev, 'vs last wk')}</p></div>
+  return `<div class="card tile"><p class="lbl">${esc(t.label)}</p><div class="tl"><p class="big">${cur}</p><p class="sub">${short(delta(cur, prev, 'vs last wk'))}</p></div>
 <div class="tr"><div class="spark">${bars}</div><div class="wkn">${t.wk.map((v) => `<span>${v}</span>`).join('')}</div></div></div>`;
 }
 
@@ -361,12 +353,12 @@ ${bracket}<text x="${xe + (bracket ? 24 : 10)}" y="${mid + 6}" fill="#fff" font-
 }
 function flowMetric(t, color) {
   const cur = t.wk[3], prev = t.wk[2];
-  return `<div class="fm"><span class="n" style="color:${color}">${cur}</span><span class="t"><b style="color:${color}">${esc(t.short)}</b><span>${delta(cur, prev, 'vs last wk')}</span></span></div>`;
+  return `<div class="fm"><span class="n" style="color:${color}">${cur}</span><span class="t"><b style="color:${color}">${esc(t.short)}</b><span>${short(delta(cur, prev, 'vs last wk'))}</span></span></div>`;
 }
 // One card for a pair: this week's two counts on the left, the 4-week flow chart on the right.
 function flowCard(title, a, b, win, W) {
   if (!a.wk || !b.wk) return `<div class="card flow"><p class="lbl">${esc(title)}</p><div class="fl"><p class="sub">waiting for Zoho</p></div></div>`;
-  return `<div class="card flow"><p class="lbl">${esc(title)} <span class="sub" style="font-weight:400">· this week, and running total over 4 weeks</span></p>
+  return `<div class="card flow"><p class="lbl">${esc(title)}</p>
 <div class="fl">${flowMetric(a, FLOW_IN)}${flowMetric(b, FLOW_OUT)}</div><div class="fc">${flowChart(a, b, win, W)}</div></div>`;
 }
 
@@ -406,7 +398,7 @@ function opsBoard(o, win) {
   const pr = o.projects;
   const line = pr ? `<div class="card panel" style="gap:10px"><div class="ph"><h2 class="lbl">Projects created · running total</h2><span class="key"><span style="width:18px;height:4px;background:#71a62b;display:inline-block"></span>This week</span><span class="key"><span style="width:18px;border-top:2px dashed #eaeaea;display:inline-block"></span>Last week</span></div>${lineChart(pr)}</div>` : waiting();
   const gMax = pr ? Math.max(1, ...pr.groups.map((g) => g.n)) : 1;
-  const types = pr ? `<div class="card panel"><div class="ph"><h2 class="lbl">New projects by type</h2><span class="sub">last 4 weeks · ${pr.total4}</span></div>
+  const types = pr ? `<div class="card panel"><div class="ph"><h2 class="lbl">New projects by type</h2></div>
 <div class="hb" style="grid-template-columns:170px minmax(0,1fr) 40px 64px;gap:16px 14px"><span style="font-size:13px;color:#a1a1a1">Type</span><span></span><span style="font-size:13px;color:#a1a1a1;text-align:right">4 wk</span><span style="font-size:13px;color:#a1a1a1;text-align:right">this wk</span>
 ${pr.groups.slice(0, 8).map((g) => `<span style="color:#eaeaea">${esc(g.name)}</span><div class="bar g" style="width:${Math.max(1, (g.n / gMax) * 100).toFixed(1)}%"></div><span class="r">${g.n}</span><span style="text-align:right;font-weight:700;color:${g.now ? '#ffdb05' : '#a1a1a1'}">${g.now}</span>`).join('')}</div></div>` : waiting();
   // Same columns and gap as the tile rows, so the two bottom cards split where the Tickets card starts.
