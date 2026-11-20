@@ -449,7 +449,7 @@ const FLARE_JS = `
     fetch(u,{cache:'no-store',credentials:'same-origin'}).then(function(r){return r.ok?r.json():null;}).then(function(j){
       if(!j)return;
       if(j.last<since)since=0; // server restarted
-      j.flares.forEach(function(f,i){if(f.in!=null)flareParadeIn(f.emoji,f.in,f.leg);else setTimeout(function(){flareBurst(f.emoji);},i*900);});
+      j.flares.forEach(function(f,i){if(f.leg!=null)flareParadeIn(f.emoji,f.in,f.leg);else flareBurstIn(f.emoji,(f.in||0)+i*900);});
       since=Math.max(since,j.last);
     }).catch(function(){});
   }

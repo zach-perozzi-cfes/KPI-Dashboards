@@ -22,6 +22,9 @@ const WALL = ['left', 'middle', 'right'];
 // left edge HOP later. The next character follows GAP behind. LEAD gives every TV time to
 // pick the flare up (they check every 3 s) before it starts on the left TV.
 const PARADE_DUR = 7200, PARADE_GAP = 900, PARADE_HOP = Math.round((PARADE_DUR * 100) / 180), PARADE_LEAD = 4500;
+// Ordinary flares wait BURST_LEAD too (more than the 3 s check interval plus network time), so all
+// three TVs start them together instead of each at its own next check.
+const BURST_LEAD = 4000;
 // Holiday emoji that join the picker on their own for part of the year (Eastern dates, inclusive).
 // Thanksgiving for all of November; Christmas from November 1 through December 31.
 const SEASONS = [
@@ -67,7 +70,7 @@ function add(board, emoji, client, now = Date.now()) {
   if (boards.some((b) => queue.filter((f) => f.board === b).length >= PER_BOARD_PER_MIN)) return 'That TV is busy, try again in a minute';
   lastByClient.set(client, now);
   // A parade starts on the left TV after LEAD, then each TV to the right starts one HOP later.
-  boards.forEach((b, i) => queue.push({ id: ++seq, board: b, emoji, at: now, go: PARADE[emoji] ? now + PARADE_LEAD + i * PARADE_HOP : null, leg: i }));
+  boards.forEach((b, i) => queue.push({ id: ++seq, board: b, emoji, at: now, go: PARADE[emoji] ? now + PARADE_LEAD + i * PARADE_HOP : now + BURST_LEAD, parade: !!PARADE[emoji], leg: i }));
   return null;
 }
 
@@ -75,9 +78,9 @@ function add(board, emoji, client, now = Date.now()) {
 function since(board, after) {
   prune(Date.now());
   const now = Date.now();
-  // `in` = ms until a parade should start on this TV, measured on the server so the TVs' own
+  // `in` = ms until a flare should start on this TV (`leg` is set only for parades), measured on the server so the TVs' own
   // clocks don't matter.
-  return { last: seq, flares: queue.filter((f) => f.board === board && f.id > after).map((f) => (f.go ? { id: f.id, emoji: f.emoji, in: f.go - now, leg: f.leg } : { id: f.id, emoji: f.emoji })) };
+  return { last: seq, flares: queue.filter((f) => f.board === board && f.id > after).map((f) => (f.parade ? { id: f.id, emoji: f.emoji, in: f.go - now, leg: f.leg } : { id: f.id, emoji: f.emoji, in: f.go - now })) };
 }
 
 const latest = () => seq;
@@ -149,6 +152,8 @@ function flareParade(key,leg){
     a.onfinish=(function(el){return function(){el.remove();};})(s);
   });
 }
+// Starts an ordinary burst after \`ms\` (never skipped: a late flare still plays).
+function flareBurstIn(emoji,ms){setTimeout(function(){flareBurst(emoji);},Math.max(0,ms));}
 // Starts a parade after \`ms\`; skips one this TV only heard about after it had already passed.
 function flareParadeIn(key,ms,leg){if(ms<-1500)return;setTimeout(function(){flareParade(key,leg||0);},Math.max(0,ms));}`;
 
