@@ -321,8 +321,8 @@ const CLIENT_JS = `
       .catch(function(e){if(e!==0){sht.textContent='Couldn\\u2019t load';shb.innerHTML='<p class="empty">Check your connection and try again.</p>';}});
   }
   function closeDrill(){sheet.classList.remove('open');sheet.setAttribute('aria-hidden','true');}
-  // FLARE: pick an emoji, it floats across the TV for the screen you're on. The phone only shows a
-  // "sent" notice; the flare itself plays on the TV.
+  // FLARE: pick an emoji, it plays on all three TVs. The phone only shows a "sent" notice; the
+  // flare itself plays on the TVs.
   var fab=document.getElementById('fab'),pk=document.getElementById('picker'),toastEl=document.getElementById('toast'),titles=TITLES;
   function toast(t,sub,emoji){
     toastEl.textContent='';
@@ -333,7 +333,7 @@ const CLIENT_JS = `
   }
   function setPicker(open){
     pk.classList.toggle('open',open);fab.setAttribute('aria-expanded',open?'true':'false');
-    if(open)document.getElementById('pk-to').textContent='Float it across the '+titles[Math.max(0,cur)]+' TV';
+    if(open)document.getElementById('pk-to').textContent='Send it to all three TVs';
   }
   fab.addEventListener('click',function(e){e.stopPropagation();setPicker(!pk.classList.contains('open'));});
   function sendFlare(emoji){
@@ -342,7 +342,7 @@ const CLIENT_JS = `
       .then(function(r){
         if(r.status===401){location.reload();return;}
         return r.json().then(function(j){
-          if(r.ok)toast('Flare sent',FLARE_ALL.indexOf(emoji)>=0?'across all three TVs':'to the '+titles[i]+' TV',emoji);
+          if(r.ok)toast('Flare sent','across all three TVs',emoji);
           else toast(j&&j.error?j.error:'Couldn’t send');
         });
       }).catch(function(){toast('Couldn’t send. Check your connection.');});
@@ -393,7 +393,7 @@ function renderMobile(metrics, sources, pollMs, { fragment = false } = {}) {
 <button type="button" class="fab" id="fab" aria-haspopup="true" aria-expanded="false" aria-controls="picker">FLARE</button>
 <div class="picker" id="picker" role="menu"><p id="pk-to"></p><div class="emo">${flare.EMOJI.map(emoBtn).join('')}${Object.entries(flare.CUSTOM).map(([k, v]) => `<button type="button" role="menuitem" data-flare="${k}" aria-label="Send ${esc(v.label)}"><img src="${v.src}" alt=""></button>`).join('')}</div>${flare.seasonal().map((x) => `<h3>${esc(x.name)}</h3><div class="emo">${x.emoji.map(emoBtn).join('')}</div>`).join('')}</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script>var FLARE_PICS=${JSON.stringify(flare.IMG_SRC)},FLARE_ALL=${JSON.stringify(Object.keys(flare.PARADE))};${CLIENT_JS.replace('POLL_MS', String(pollMs)).replace('TITLES', JSON.stringify(TABS.map(([k]) => BOARDS[k].title)))}</script></body></html>`;
+<script>var FLARE_PICS=${JSON.stringify(flare.IMG_SRC)};${CLIENT_JS.replace('POLL_MS', String(pollMs)).replace('TITLES', JSON.stringify(TABS.map(([k]) => BOARDS[k].title)))}</script></body></html>`;
 }
 
 const MAX_RECS = 500;

@@ -1,6 +1,6 @@
 'use strict';
-// Flares: someone taps FLARE on the phone view, picks an emoji, and it floats up across the TV
-// for the screen they're on. Kept in memory only (a flare is worth seeing for a few seconds).
+// Flares: someone taps FLARE on the phone view, picks an emoji, and it plays on all three TVs
+// at once (a parade instead runs across them in turn). Kept in memory only (a flare is worth seeing for a few seconds).
 // The TVs check for new flares every few seconds; that check never calls Zoho.
 
 // Only these can be sent, so nothing typed by a person ever reaches the TVs.
@@ -62,7 +62,8 @@ function add(board, emoji, client, now = Date.now()) {
   if (!allowedNow(new Date(now)).includes(emoji)) return 'Unknown emoji';
   const last = lastByClient.get(client);
   if (last && now - last < PER_CLIENT_MS) return 'One flare every few seconds';
-  const boards = PARADE[emoji] ? WALL : [board];
+  // Every flare plays on all three TVs, whichever screen the phone is showing (`board` is unused).
+  const boards = WALL;
   if (boards.some((b) => queue.filter((f) => f.board === b).length >= PER_BOARD_PER_MIN)) return 'That TV is busy, try again in a minute';
   lastByClient.set(client, now);
   // A parade starts on the left TV after LEAD, then each TV to the right starts one HOP later.
