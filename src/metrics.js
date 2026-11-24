@@ -201,9 +201,21 @@ const STAGE_ORDER = [
 const LAYOUT_SHORT = {
   'CFSS Standard Deal': 'Standard',
   'Service Deal': 'Service',
-  'Energy Services': 'Energy',
+  'Energy Services': 'Energy Services',
   'EV Charging Deal': 'EV',
 };
+// Closed-won chart colors by layout (brand green / yellow / orange, then light grey). Anything else is mid grey.
+const LAYOUT_COLOR = {
+  'CFSS Standard Deal': '#71a62b',
+  'Service Deal': '#ffdb05',
+  'Energy Services': '#f49c20',
+  'EV Charging Deal': '#eaeaea',
+};
+const layoutColor = (name) => LAYOUT_COLOR[name] || '#8c8c8c';
+const layoutShort = (name) => LAYOUT_SHORT[name] || name;
+// The "Avg deal size" tiles compare these two departments.
+const STD_LAYOUT = 'CFSS Standard Deal';
+const SVC_LAYOUT = 'Service Deal';
 const stageRank = (s) => { const i = STAGE_ORDER.indexOf(s); return i < 0 ? 99 : i; };
 const LATE = new Set(['Proposal Review-60', 'Proposal Review-80', 'Negotiation']);
 const EARLY = new Set(['Proposal Review-20', 'Proposal Review-40']);
@@ -259,32 +271,45 @@ function pipeline(src, win) {
 
   const year = win.today.slice(0, 4);
   const curMonth = Number(win.today.slice(5, 7));
-  const months = Array.from({ length: curMonth }, (_, i) => ({ m: i + 1, std: 0, svc: 0, nStd: 0, nSvc: 0 }));
+  // Closed won by month x layout (the layout is the department). Each month has amt/n totals and
+  // by[layout name] = { amt, n }; wonLayouts lists the layouts that closed anything this year,
+  // biggest revenue first (that order is the stacking order, bottom to top).
+  const months = Array.from({ length: curMonth }, (_, i) => ({ m: i + 1, amt: 0, n: 0, by: {} }));
+  const layoutTot = new Map();
   for (const d of src.wonDeals.data) {
     if (!d.date || d.date.slice(0, 4) !== year) continue;
     const m = Number(d.date.slice(5, 7));
     if (m < 1 || m > curMonth) continue;
+    const l = d.layout || 'No layout';
     const row = months[m - 1];
-    if (isService(d.pipeline)) { row.svc += d.amount; row.nSvc++; } else { row.std += d.amount; row.nStd++; }
+    const cellL = row.by[l] || (row.by[l] = { amt: 0, n: 0 });
+    cellL.amt += d.amount; cellL.n++;
+    row.amt += d.amount; row.n++;
+    const t = layoutTot.get(l) || { amt: 0, n: 0 };
+    t.amt += d.amount; t.n++;
+    layoutTot.set(l, t);
   }
+  const wonLayouts = [...layoutTot.entries()].sort((a, b) => b[1].amt - a[1].amt)
+    .map(([name, t]) => ({ name, short: layoutShort(name), color: layoutColor(name), amt: t.amt, n: t.n }));
   const cur = months[curMonth - 1];
   const prev = curMonth > 1 ? months[curMonth - 2] : null;
   const late = stages.filter((s) => s.kind === 'late');
-  const ytdStdAmt = sumBy(months, (m) => m.std), ytdStdN = sumBy(months, (m) => m.nStd);
-  const ytdSvcAmt = sumBy(months, (m) => m.svc), ytdSvcN = sumBy(months, (m) => m.nSvc);
+  const ytdOf = (name) => layoutTot.get(name) || { amt: 0, n: 0 };
+  const ytdStdAmt = ytdOf(STD_LAYOUT).amt, ytdStdN = ytdOf(STD_LAYOUT).n;
+  const ytdSvcAmt = ytdOf(SVC_LAYOUT).amt, ytdSvcN = ytdOf(SVC_LAYOUT).n;
   return {
     stages,
     layouts, matrix, cellMax,
     openAmt: sumBy(stages, (s) => s.amt), openN: sumBy(stages, (s) => s.n),
     lateAmt: sumBy(late, (s) => s.amt), lateN: sumBy(late, (s) => s.n),
-    months,
-    mtdAmt: cur.std + cur.svc, mtdN: cur.nStd + cur.nSvc, mtdStdN: cur.nStd, mtdSvcN: cur.nSvc,
-    prevAmt: prev ? prev.std + prev.svc : null,
-    ytdAmt: sumBy(months, (m) => m.std + m.svc), ytdN: sumBy(months, (m) => m.nStd + m.nSvc),
+    months, wonLayouts,
+    mtdAmt: cur.amt, mtdN: cur.n,
+    prevAmt: prev ? prev.amt : null,
+    ytdAmt: sumBy(months, (m) => m.amt), ytdN: sumBy(months, (m) => m.n),
     ytdStdAmt, ytdStdN, ytdSvcAmt, ytdSvcN,
     avgStd: ytdStdN ? ytdStdAmt / ytdStdN : 0,
     avgSvc: ytdSvcN ? ytdSvcAmt / ytdSvcN : 0,
-    trend: monthTrend(months.slice(0, curMonth - 1).map((m) => m.std + m.svc)),
+    trend: monthTrend(months.slice(0, curMonth - 1).map((m) => m.amt)),
     newDeals: newDeals(src, win),
   };
 }
@@ -368,5 +393,6 @@ function computeAll(sources, now = new Date()) {
 module.exports = {
   TZ, computeAll, windowFor, addDays, nyDate, inRange,
   GRID_EXCLUDE, CALL_REPS, isRepCall, callRep, isOut, isSat, isService, gridWeekStart, repName,
+  STD_LAYOUT, SVC_LAYOUT, layoutColor, layoutShort,
   stageRank, LAYOUT_SHORT, newDealWindow, TASK_KINDS, TICKET_KINDS, GROUP_LABELS,
 };

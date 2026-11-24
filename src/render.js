@@ -276,7 +276,7 @@ ${newTile}
 
   // Tall enough that the chart card fills the space under the top row on its own.
   const plotH = 490;
-  const maxTot = Math.max(1, ...p.months.map((m) => m.std + m.svc));
+  const maxTot = Math.max(1, ...p.months.map((m) => m.amt));
   const scaleMax = maxTot * 1.12;
   const step = [50e3, 100e3, 250e3, 500e3, 1e6, 2e6, 5e6].find((s) => scaleMax / s <= 4) || 1e7;
   let grid = '';
@@ -288,9 +288,11 @@ ${newTile}
   // Columns sit edge to edge (spacing comes from padding), so month i's center is at (i + 0.5) / n.
   const colPad = n > 9 ? 9 : 14;
   const cols = p.months.map((m, i) => {
-    const hs = Math.round((m.std / scaleMax) * plotH), hv = Math.round((m.svc / scaleMax) * plotH);
     const mtd = i === curM - 1;
-    return `<div class="col" style="padding:0 ${colPad}px"><p class="num" style="font-size:14px;position:relative;z-index:1;text-shadow:0 0 4px #1d1d1d,0 0 4px #1d1d1d${mtd ? ';color:#ffdb05' : ''}">${money(m.std + m.svc)}</p>${hv ? `<div class="y" style="height:${hv}px;border-radius:4px 4px 0 0"></div>` : ''}${hs ? `<div class="vg" style="height:${hs}px;${hv ? '' : 'border-radius:4px 4px 0 0'}"></div>` : ''}</div>`;
+    // One segment per layout (department). The biggest layout sits at the bottom, so list top-down.
+    const segs = p.wonLayouts.map((l) => ({ l, h: Math.round((((m.by[l.name] || {}).amt || 0) / scaleMax) * plotH) })).filter((s) => s.h > 0).reverse();
+    const stack = segs.map((s, k) => `<div style="height:${s.h}px;background:${s.l.color === '#71a62b' ? 'linear-gradient(180deg,#71a62b,#5a881c)' : s.l.color}${k === 0 ? ';border-radius:4px 4px 0 0' : ''}"></div>`).join('');
+    return `<div class="col" style="padding:0 ${colPad}px"><p class="num" style="font-size:14px;position:relative;z-index:1;text-shadow:0 0 4px #1d1d1d,0 0 4px #1d1d1d${mtd ? ';color:#ffdb05' : ''}">${money(m.amt)}</p>${stack}</div>`;
   }).join('');
 
   // Linear trend over completed months only (metrics.js monthTrend).
@@ -304,8 +306,9 @@ ${newTile}
     trendKey = `<span class="key"><span style="width:24px;border-top:3px dashed #ffffff;display:inline-block"></span>Trend ${MONTHS[0]}–${MONTHS[k - 1]}: ${slope >= 0 ? '+' : '−'}${money(Math.abs(slope))}/mo</span>`;
   }
   const monthLbls = p.months.map((m, i) => `<p class="sub" style="text-align:center${i === n - 1 ? ';color:#ffdb05' : ''}">${MONTHS[m.m - 1]}</p>`).join('');
-  const counts = p.months.map((m, i) => `<p style="margin:0;text-align:center;font-weight:700;font-size:16px${i === n - 1 ? ';color:#ffdb05' : ''}">${m.nStd + m.nSvc}</p>`).join('');
-  const left = `<div class="card panel" style="flex-grow:1"><div class="ph"><h2 class="lbl">Closed-won revenue by month</h2><span class="key"><span class="sw g"></span>Standard pipeline</span><span class="key"><span class="sw y"></span>Service (CFSS)</span>${trendKey}</div>
+  const counts = p.months.map((m, i) => `<p style="margin:0;text-align:center;font-weight:700;font-size:16px${i === n - 1 ? ';color:#ffdb05' : ''}">${m.n}</p>`).join('');
+  const layoutKeys = p.wonLayouts.map((l) => `<span class="key"><span class="sw" style="background:${l.color}"></span>${esc(l.short)}</span>`).join('');
+  const left = `<div class="card panel" style="flex-grow:1"><div class="ph"><h2 class="lbl">Closed-won revenue by month · by department</h2>${layoutKeys}${trendKey}</div>
 <div style="position:relative;height:${plotH + 30}px;display:flex;padding-left:72px">${grid}
 <div style="position:relative;flex-grow:1;display:grid;grid-template-columns:repeat(${n},minmax(0,1fr));gap:0;align-items:end;border-bottom:1px solid #333333">${cols}${trendSvg}</div></div>
 <div style="display:grid;grid-template-columns:72px repeat(${n},minmax(0,1fr));column-gap:0;row-gap:8px;align-items:center"><span></span>${monthLbls}<span style="font-size:13px;color:#a1a1a1">Deals won</span>${counts}</div></div>`;

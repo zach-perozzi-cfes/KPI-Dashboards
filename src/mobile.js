@@ -213,20 +213,21 @@ function pipelinePane(p, win) {
 ${nd ? btn('middle:newdeals', 'card tap', `<p class="lbl">New deals · ${MONTHS[curM - 1]}</p><p class="big">${nd.n}</p><p class="sub">${delta(nd.n, nd.prevSame, `vs ${prevMonth} 1–${nd.day}`)}<br>${nd.std} std, ${nd.svc} service</p>`)
     : '<div class="card"><p class="lbl">New deals</p><p class="big">–</p><p class="sub">waiting for Zoho</p></div>'}
 ${btn('middle:avg~std', 'card tap gold', `<p class="lbl">Avg deal size · ${yr}</p><p class="big" style="font-size:30px">${money(avgStd)}</p><p class="sub">Standard, ${p.ytdStdN} won<br>Service avg ${money(avgSvc)}</p>`)}
-${btn('middle:mtd', 'card tap', `<p class="lbl">Won · ${MONTHS[curM - 1]} to date</p><p class="big" style="font-size:30px">${money(p.mtdAmt)}</p><p class="sub">${p.mtdN} deals<br>${p.mtdStdN} std, ${p.mtdSvcN} service</p>`)}
+${btn('middle:mtd', 'card tap', `<p class="lbl">Won · ${MONTHS[curM - 1]} to date</p><p class="big" style="font-size:30px">${money(p.mtdAmt)}</p><p class="sub">${p.mtdN} deals<br>${p.wonLayouts.map((l) => ({ l, n: (p.months[curM - 1].by[l.name] || {}).n || 0 })).filter((x) => x.n).map((x) => `${x.n} ${esc(x.l.short.toLowerCase())}`).join(', ') || 'none yet'}</p>`)}
 ${btn('middle:ytd', 'card tap green', `<p class="lbl">Closed won · ${yr}</p><p class="big" style="font-size:30px">${money(p.ytdAmt)}</p><p class="sub">${p.ytdN} deals${p.prevAmt != null ? `<br>${MONTHS[curM - 2]} was ${money(p.prevAmt)}` : ''}</p>`)}
 </div>
 ${btn('middle:avg~svc', 'card tap', `<div class="ph" style="margin:0"><h2>Service avg deal size</h2><span class="more">${money(avgSvc)} · ${p.ytdSvcN} won ›</span></div>`)}`;
 
-  const mMax = Math.max(1, ...p.months.map((m) => m.std + m.svc));
+  const mMax = Math.max(1, ...p.months.map((m) => m.amt));
   const tr = p.trend;
   const trend = tr ? `<p class="sub" style="margin-top:8px">Trend ${MONTHS[0]}–${MONTHS[tr.months - 1]}: <b style="color:#fff">${tr.slope >= 0 ? '+' : '−'}${money(Math.abs(tr.slope))}/mo</b> (completed months)</p>` : '';
   const monthRows = [...p.months].reverse().map((m) => {
-    const tot = m.std + m.svc, mtd = m.m === curM;
-    return btn(`middle:month~${m.m}`, 'tap hb', `<span class="nm"${mtd ? ' style="color:#ffdb05"' : ''}>${MONTHS[m.m - 1]}${mtd ? '*' : ''}</span><span class="bar"><span class="g" style="width:${(m.std / mMax) * 100}%"></span><span class="y" style="width:${(m.svc / mMax) * 100}%"></span></span><span class="v">${money(tot)}<small>${m.nStd + m.nSvc}</small></span>`);
+    const mtd = m.m === curM;
+    const segs = p.wonLayouts.map((l) => `<span style="background:${l.color};width:${((((m.by[l.name] || {}).amt) || 0) / mMax) * 100}%"></span>`).join('');
+    return btn(`middle:month~${m.m}`, 'tap hb', `<span class="nm"${mtd ? ' style="color:#ffdb05"' : ''}>${MONTHS[m.m - 1]}${mtd ? '*' : ''}</span><span class="bar">${segs}</span><span class="v">${money(m.amt)}<small>${m.n}</small></span>`);
   }).join('');
   const months = `<div class="card"><div class="ph"><h2>Closed-won by month</h2>${btn('middle:ytd', 'dtl', 'Details ›')}</div>
-<div><span class="key"><span class="sw g"></span>Standard</span><span class="key"><span class="sw y"></span>Service (CFSS)</span></div>${monthRows}
+<div>${p.wonLayouts.map((l) => `<span class="key"><span class="sw" style="background:${l.color}"></span>${esc(l.short)}</span>`).join('')}</div>${monthRows}
 <p class="sub" style="margin-top:6px">* month to date · small number = deals won</p>${trend}</div>`;
 
   return kpis + months;

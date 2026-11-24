@@ -185,8 +185,8 @@ function sourceDefs(win) {
       .then((rows) => rows.map((r) => ({ id: r.id, name: r.Deal_Name || '', owner: ownerName(r.Owner), created: r.Created_Time || null, stage: r.Stage || 'Unknown', amount: Number(r.Amount) || 0, layout: (r.Layout && r.Layout.name) || 'No layout' }))),
     newDeals: () => coqlAll(`select id, Deal_Name, Owner, Stage, Created_Time, Pipeline from Deals where Created_Time >= '${win.prevMonthStart}T00:00:00-05:00'`)
       .then((rows) => rows.map((r) => ({ id: r.id, name: r.Deal_Name || '', owner: ownerName(r.Owner), stage: r.Stage || '', t: r.Created_Time, pipeline: r.Pipeline || '' }))),
-    wonDeals: () => coqlAll(`select id, Deal_Name, Owner, Closing_Date, Amount, Pipeline from Deals where Stage = 'Closed Won' and Closing_Date >= '${win.yearStart}'`)
-      .then((rows) => rows.map((r) => ({ id: r.id, name: r.Deal_Name || '', owner: ownerName(r.Owner), date: r.Closing_Date, amount: Number(r.Amount) || 0, pipeline: r.Pipeline || '' }))),
+    wonDeals: () => coqlAll(`select id, Deal_Name, Owner, Closing_Date, Amount, Pipeline, Layout from Deals where Stage = 'Closed Won' and Closing_Date >= '${win.yearStart}'`)
+      .then((rows) => rows.map((r) => ({ id: r.id, name: r.Deal_Name || '', owner: ownerName(r.Owner), date: r.Closing_Date, amount: Number(r.Amount) || 0, pipeline: r.Pipeline || '', layout: (r.Layout && r.Layout.name) || 'No layout' }))),
     projects: () => projectsCreatedSince(win.fetchFrom),
     tasksDesign: () => closedTasksSince('Design', win.fetchFrom),
     tasksPermit: () => closedTasksSince('Permit', win.fetchFrom),

@@ -162,15 +162,16 @@ function pipeline(id, src, win) {
   const year = win.today.slice(0, 4);
   const curMonth = Number(win.today.slice(5, 7));
   const svcLabel = (r) => (M.isService(r.pipeline) ? 'Service (CFSS)' : 'Standard');
+  const layoutLabel = (r) => M.layoutShort(r.layout || 'No layout');
   const wonYtd = () => src.wonDeals.data.filter((r) => r.date && r.date.slice(0, 4) === year && Number(r.date.slice(5, 7)) >= 1 && Number(r.date.slice(5, 7)) <= curMonth);
   const monthName = (r) => MONTHS[Number(r.date.slice(5, 7)) - 1];
   const wonGroups = (rows, months = true) => [
-    { label: 'Standard vs service', rows: countBy(rows, svcLabel, true) },
+    { label: 'By department (layout)', rows: countBy(rows, layoutLabel, true) },
     ...(months ? [{ label: 'By month', rows: countBy(rows, monthName).sort((x, y) => MONTHS.indexOf(x.name) - MONTHS.indexOf(y.name)).map((g) => ({ ...g, amt: rows.filter((r) => monthName(r) === g.name).reduce((s, r) => s + r.amount, 0) })) }] : []),
     { label: 'By owner', rows: countBy(rows, (r) => r.owner || null, true) },
   ];
-  const wonRec = (r) => dealRec(r, svcLabel(r));
-  const WON_RULE = 'Deals with Stage = Closed Won, by Closing Date. Service = Pipeline contains "CFSS".';
+  const wonRec = (r) => dealRec(r, layoutLabel(r));
+  const WON_RULE = 'Deals with Stage = Closed Won, by Closing Date. Department = the deal\'s CRM Layout.';
   if (kind === 'newdeals') {
     if (!src.newDeals || !src.newDeals.data) return pending('New deals');
     const all = src.newDeals.data.map((r) => ({ ...r, d: nyDate(r.t) }));
@@ -187,7 +188,7 @@ function pipeline(id, src, win) {
   if (!src.wonDeals.data && kind !== 'open') return pending('Closed won');
   if (kind === 'avg') {
     const svc = a === 'svc';
-    const rows = wonYtd().filter((r) => M.isService(r.pipeline) === svc);
+    const rows = wonYtd().filter((r) => r.layout === (svc ? M.SVC_LAYOUT : M.STD_LAYOUT));
     const amt = rows.reduce((s, r) => s + r.amount, 0);
     return make(`Avg deal size · ${svc ? 'service' : 'standard'} · ${year}`, `${WON_RULE} Average = total Amount ÷ number of deals.`, rows, wonRec, wonGroups(rows), { unit: 'deals', money: true, byAmount: true, total: `${money(rows.length ? amt / rows.length : 0)} avg · ${rows.length} deals`, explain: `The typical dollar value of a ${svc ? 'service (repair and maintenance)' : 'standard (new install, like solar or batteries)'} job we sold this year: the total of every sale divided by the number of sales. If it rises we are selling bigger jobs; if it falls, jobs are getting smaller.` });
   }

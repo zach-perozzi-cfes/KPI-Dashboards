@@ -31,7 +31,7 @@ This file traces every number and chart on the three office monitor boards back 
 | `apptSat` | CRM · Deals | `Appointment_Date` between the 1st and the last day of last month | `Appointment_Date`, `Lead_Source` (blank becomes "None"), `Scheduled_Appointment_Quality` |
 | `openDeals` | CRM · Deals | `Stage not in` Closed Won, Closed Lost, Closed Deferred, Closed Disqualified, Closed Hold, Appointment Cancelled. No date filter: every open deal. | `Stage`, `Amount` (blank = 0), `Layout` |
 | `newDeals` | CRM · Deals | `Created_Time >=` the 1st of last month | `Created_Time`, `Pipeline` |
-| `wonDeals` | CRM · Deals | `Stage = 'Closed Won'` and `Closing_Date >=` Jan 1 | `Closing_Date`, `Amount`, `Pipeline` |
+| `wonDeals` | CRM · Deals | `Stage = 'Closed Won'` and `Closing_Date >=` Jan 1 | `Closing_Date`, `Amount`, `Pipeline`, `Layout` |
 | `projects` | Projects · Projects | `created_time >=` 22 days before this Monday | `created_time`, `project_group.name` |
 | `tasksDesign` | Projects · Tasks | name contains "Design", status is any closed status, `last_updated_time >=` 22 days before this Monday | `name`, `completed_on` |
 | `tasksPermit` | Projects · Tasks | the same, name contains "Permit" | `name`, `completed_on` |
@@ -48,7 +48,8 @@ Every phone drill-down list is filtered with the same rule helpers in `src/metri
 
 ### Two rules used on several boards
 
-- **Standard vs service:** a deal counts as **service** when its `Pipeline` field contains "CFSS" (any case). Every other deal counts as **standard**. This uses the `Pipeline` field, not the deal's Layout.
+- **Standard vs service (new deals only):** a deal counts as **service** when its `Pipeline` field contains "CFSS" (any case). Every other deal counts as **standard**. This uses the `Pipeline` field, not the deal's Layout.
+- **Closed-won deals are split by Layout:** the deal's CRM **Layout** is its department (Standard, Service, Energy Services, EV, ...). Every closed-won number that is split up (bar chart, tile sub-lines, phone drill-downs) uses the Layout.
 - **Up/down arrows** compare this period with the one before it. The previous value is shown in parentheses. Green ▲ means up, orange ▼ means down, and grey ● means no change.
 
 ---
@@ -116,11 +117,12 @@ Sources: `openDeals`, `wonDeals`, `newDeals` (Zoho CRM Deals).
 
 ### Avg deal size · year (gold tile)
 - **Big number:** for **standard** deals only, the total `Amount` of Closed Won deals this year divided by how many there are. Closed Won means `Stage = 'Closed Won'` and `Closing_Date` this year.
-- **"Service avg" (phone view only):** the same calculation for service (CFSS) deals.
+- **Which deals are "standard":** deals with Layout "CFSS Standard Deal".
+- **"Service avg" (phone view only):** the same calculation for deals with Layout "Service Deal".
 
 ### Closed won · month to date (tile)
 - **Big number:** the total `Amount` of Closed Won deals whose `Closing_Date` is in this month.
-- **Smaller line (phone view only):** the deal count, split by the CFSS rule.
+- **Smaller line (phone view only):** the deal count, split by Layout.
 
 ### Closed won · year (green tile)
 - **Big number:** the total `Amount` of Closed Won deals whose `Closing_Date` is in this year.
@@ -128,8 +130,7 @@ Sources: `openDeals`, `wonDeals`, `newDeals` (Zoho CRM Deals).
 
 ### Closed-won revenue by month (bar chart)
 - **Bars:** one stacked bar per month from January through this month, built from Closed Won deals by `Closing_Date` month and summing `Amount`.
-  - **Green:** standard.
-  - **Yellow:** service (CFSS).
+  - **Segments:** one per Layout (department) that closed a deal this year, biggest total at the bottom. Green = Standard, yellow = Service, orange = Energy Services, light grey = EV, mid grey = any other layout. The legend in the card header lists them.
   - **Label above each bar:** that month's total.
   - **Current month:** shown in yellow, because it is month to date.
 - **Deals won row:** the number of Closed Won deals in each month.
@@ -145,7 +146,7 @@ Sources: `openDeals`, `wonDeals`, `newDeals` (Zoho CRM Deals).
   | CFSS Standard Deal | Standard |
   | Service Deal | Service |
   | EV Charging Deal | EV |
-  | Energy Services | Energy |
+  | Energy Services | Energy Services |
 
   Any other layout shows its full name. Columns are sorted by deal count, largest first.
 - **Cells:** the deal count. Shading is relative to the busiest cell.
