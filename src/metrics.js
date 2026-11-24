@@ -72,6 +72,14 @@ const isRepCall = (subject) => CALL_REPS.some((n) => (subject || '').toLowerCase
 // Which rep's line a call was on (for the phone drill-down).
 const callRep = (subject) => CALL_REPS.find((n) => (subject || '').toLowerCase().includes(n.toLowerCase())) || null;
 const isOut = (type) => /out/i.test(type || '');
+// Inside sales reps whose closed activities count. Unlike calls, a CRM Task has a real owner, so the
+// reps are matched by CRM user id (the owner field only carries a last name).
+const ACTIVITY_REPS = {
+  '4669422000104008001': 'Nicole Brugman',
+  '4669422000210151001': 'Quintin Driskell',
+  '4669422000104447003': 'Michael Broadhurst',
+};
+const isRepActivity = (r) => Boolean(ACTIVITY_REPS[r.ownerId]);
 // "Sat": Appointment Quality filled in and not "D (Not Good, Questionable)".
 const isSat = (q) => Boolean(q) && !/^D /.test(q);
 // Service deals: Pipeline contains "CFSS".
@@ -98,6 +106,11 @@ function sales(src, win) {
 
   const leadsWk = perWeek(leadDates.map((x) => x.d), win.weeks);
   const callsWk = perWeek(calls.map((x) => x.d), win.weeks);
+  // Closed activities (CRM Tasks marked Completed) by the three inside sales reps, by Closed_Time.
+  // null while that source has no data, so the tile can show a dash instead of a false zero.
+  const actWk = src.activities && src.activities.data
+    ? perWeek(src.activities.data.filter(isRepActivity).map((r) => nyDate(r.t)), win.weeks)
+    : null;
   const mtgWk = perWeek(mtgDates, win.weeks);
 
   const callDays = [0, 1, 2, 3, 4].map((i) => {
@@ -182,7 +195,7 @@ function sales(src, win) {
 
   return {
     apptSat, funnel,
-    leadsWk, callsWk, mtgWk,
+    leadsWk, callsWk, actWk, mtgWk,
     callsOut: thisWeekCalls.filter((x) => x.out).length,
     callsIn: thisWeekCalls.filter((x) => !x.out).length,
     callDays, nextDays, mtgGrid,
@@ -392,7 +405,7 @@ function computeAll(sources, now = new Date()) {
 
 module.exports = {
   TZ, computeAll, windowFor, addDays, nyDate, inRange,
-  GRID_EXCLUDE, CALL_REPS, isRepCall, callRep, isOut, isSat, isService, gridWeekStart, repName,
+  GRID_EXCLUDE, CALL_REPS, ACTIVITY_REPS, isRepActivity, isRepCall, callRep, isOut, isSat, isService, gridWeekStart, repName,
   STD_LAYOUT, SVC_LAYOUT, layoutColor, layoutShort,
   stageRank, LAYOUT_SHORT, newDealWindow, TASK_KINDS, TICKET_KINDS, GROUP_LABELS,
 };

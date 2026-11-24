@@ -8,7 +8,7 @@ const { MONTHS, DAYS, esc, sum, md, dnum, money, delta, dayTimeFmt } = require('
 const flare = require('./flare');
 
 const BOARDS = {
-  left: { title: 'Inside Sales', sources: ['leads', 'calls', 'meetings', 'apptSat'], system: 'Zoho CRM' },
+  left: { title: 'Inside Sales', sources: ['leads', 'calls', 'activities', 'meetings', 'apptSat'], system: 'Zoho CRM' },
   middle: { title: 'Sales Pipeline', sources: ['openDeals', 'wonDeals', 'newDeals'], system: 'Zoho CRM Deals' },
   right: { title: 'Operations', sources: ['projects', 'tasksDesign', 'tasksPermit', 'tasksInstall', 'tickets'], system: 'Zoho Projects + Desk' },
 };
@@ -188,10 +188,10 @@ function funnelRows(f) {
 // ---------------- LEFT: Inside Sales ----------------
 function salesBoard(s, win) {
   if (!s) return waiting();
-  const [, , l2, l3] = s.leadsWk; const [, , c2, c3] = s.callsWk; const [, , m2, m3] = s.mtgWk;
+  const [, , l2, l3] = s.leadsWk; const [, , a2, a3] = s.actWk || [null, null, null, null]; const [, , m2, m3] = s.mtgWk;
   const kpis = `<div class="sec"><p class="grp"><i style="background:#71a62b"></i>This week</p><section class="kpis">
 <div class="card kpi"><p class="lbl">Leads created</p><p class="big">${l3}</p><p class="sub">${short(delta(l3, l2))}</p></div>
-<div class="card kpi"><p class="lbl">Calls logged</p><p class="big">${c3}</p><p class="sub">${short(delta(c3, c2))}</p></div>
+<div class="card kpi"><p class="lbl">Activities closed</p><p class="big">${a3 == null ? '–' : a3}</p><p class="sub">${a3 == null ? '&nbsp;' : short(delta(a3, a2))}</p></div>
 <div class="card kpi"><p class="lbl">Meetings this week</p><p class="big">${m3}</p><p class="sub">${short(delta(m3, m2))}</p></div>
 <div class="card kpi green"><p class="lbl">Meetings booked · next week</p><p class="big">${s.nextTotal}</p><p class="sub">&nbsp;</p></div>
 </section></div>`;

@@ -4,7 +4,7 @@ Three live KPI boards for the office TVs (Yodeck players), fed directly by Zoho 
 
 | Path | Monitor | Data |
 | --- | --- | --- |
-| `/left` | Inside Sales | Leads, calls, meetings (Zoho CRM) |
+| `/left` | Inside Sales | Leads, closed activities, calls, meetings (Zoho CRM) |
 | `/middle` | Sales Pipeline | Open deals by stage, closed-won by month (Zoho CRM Deals) |
 | `/right` | Operations | Projects created, designs, permits, installs (Zoho Projects tasks); incoming and closed service tickets (Zoho Desk) |
 
@@ -19,7 +19,7 @@ No dependencies: Node 20+, `node server.js`.
 ## Security model
 
 - **Read-only Zoho access.** A Zoho Self Client refresh token with only these scopes:
-  `ZohoCRM.coql.READ,ZohoCRM.modules.leads.READ,ZohoCRM.modules.calls.READ,ZohoCRM.modules.events.READ,ZohoCRM.modules.deals.READ,ZohoProjects.projects.READ,ZohoProjects.tasks.READ,Desk.tickets.READ,Desk.search.READ`
+  `ZohoCRM.coql.READ,ZohoCRM.modules.leads.READ,ZohoCRM.modules.calls.READ,ZohoCRM.modules.tasks.READ,ZohoCRM.modules.events.READ,ZohoCRM.modules.deals.READ,ZohoProjects.projects.READ,ZohoProjects.tasks.READ,Desk.tickets.READ,Desk.search.READ`
 - **Secrets live only in Render environment variables**, never in the repo or on the players.
 - **Fail closed.** With no `DASH_KEY` (or `DASH_USER` + `DASH_PASS`) set, every board request returns 401. Only `/healthz`, `/logo.png` and the phone view's sign-in page are reachable without a key; the phone view's data needs a sign-in from today's QR code, and with no `MOBILE_SECRET` the phone view is off.
 - **Access options:** `?key=<DASH_KEY>` in the Yodeck URL, or HTTP Basic Auth (`https://user:pass@host/left`). Comparisons are constant-time.

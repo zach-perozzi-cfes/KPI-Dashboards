@@ -161,10 +161,10 @@ function bars(rows, idOf, mx, colorOf = () => 'g') {
 // ---------- Inside Sales ----------
 function salesPane(s, win) {
   if (!s) return waiting;
-  const [, , l2, l3] = s.leadsWk; const [, , c2, c3] = s.callsWk; const [, , m2, m3] = s.mtgWk;
+  const [, , l2, l3] = s.leadsWk; const [, , a2, a3] = s.actWk || [null, null, null, null]; const [, , m2, m3] = s.mtgWk;
   const kpis = `<div class="kpis">
 ${btn('left:leads', 'card tap', `<p class="lbl">Leads created</p><p class="big">${l3}</p><p class="sub">${short(delta(l3, l2, 'vs last wk'))}</p>`)}
-${btn('left:calls', 'card tap', `<p class="lbl">Calls logged</p><p class="big">${c3}</p><p class="sub">${short(delta(c3, c2, 'vs last wk'))}</p>`)}
+${btn('left:acts', 'card tap', `<p class="lbl">Activities closed</p><p class="big">${a3 == null ? '–' : a3}</p><p class="sub">${a3 == null ? '&nbsp;' : short(delta(a3, a2, 'vs last wk'))}</p>`)}
 ${btn('left:meetings', 'card tap', `<p class="lbl">Meetings this week</p><p class="big">${m3}</p><p class="sub">${short(delta(m3, m2, 'vs last wk'))}</p>`)}
 ${btn('left:nextweek', 'card tap green', `<p class="lbl">Booked next week</p><p class="big">${s.nextTotal}</p><p class="sub">${esc(weekLabel(win.nextWs).replace(/, \d{4}$/, ''))}</p>`)}
 </div>`;

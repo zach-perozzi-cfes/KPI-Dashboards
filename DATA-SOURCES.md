@@ -21,12 +21,13 @@ This file traces every number and chart on the three office monitor boards back 
 | Year to date | Jan 1 through today. |
 | Last month | The 1st through the last day of the previous calendar month. |
 
-### The twelve sources
+### The thirteen sources
 
 | Source | Zoho app / module | Query | Fields used |
 | --- | --- | --- | --- |
 | `leads` | CRM · Leads | `Created_Time >=` 22 days before this Monday | `Created_Time`, `Lead_Source` (blank becomes "None") |
 | `calls` | CRM · Calls | `Call_Start_Time >=` 22 days before this Monday | `Call_Start_Time`, `Call_Type`, `Subject` (used to keep only the inside sales reps' calls) |
+| `activities` | CRM · Tasks | `Status = 'Completed'`, `Closed_Time >=` 22 days before this Monday, `Owner` is one of the three inside sales reps (by user id) | `Closed_Time`, `Owner` (id), `Subject` |
 | `meetings` | CRM · Events (Meetings) | `Start_DateTime` between 22 days before this Monday and the Sunday after next | `Start_DateTime`, `Owner` (name and id) |
 | `apptSat` | CRM · Deals | `Appointment_Date` between the 1st and the last day of last month | `Appointment_Date`, `Lead_Source` (blank becomes "None"), `Scheduled_Appointment_Quality` |
 | `openDeals` | CRM · Deals | `Stage not in` Closed Won, Closed Lost, Closed Deferred, Closed Disqualified, Closed Hold, Appointment Cancelled. No date filter: every open deal. | `Stage`, `Amount` (blank = 0), `Layout` |
@@ -56,7 +57,7 @@ Every phone drill-down list is filtered with the same rule helpers in `src/metri
 
 ## Inside Sales (`/left`)
 
-Sources: `leads`, `calls`, `meetings`, `apptSat` (Zoho CRM).
+Sources: `leads`, `calls`, `activities`, `meetings`, `apptSat` (Zoho CRM).
 
 ### Leads created (tile)
 - **Big number:** Leads with `Created_Time` in this week (Mon–Sun).
@@ -69,9 +70,13 @@ Sources: `leads`, `calls`, `meetings`, `apptSat` (Zoho CRM).
 - Calls on shared lines (Service, Sales, Interconnections, EV Solutions) and other people's lines are left out.
 - As of Nov 13, 2026, no call in CRM has Quintin Driskell's name in the Subject, so his calls don't reach the board yet.
 
-### Calls logged (tile)
-- **Big number:** the reps' calls with `Call_Start_Time` in this week (Mon–Sun).
-- **"X out / Y in" (phone view only):** a call counts as **out** when `Call_Type` contains "out" (Outbound). **Everything else counts as "in"**, which means Missed calls are counted as inbound.
+### Activities closed (tile)
+- **Big number:** CRM **Tasks** with `Status` = Completed and `Closed_Time` in this week (Mon–Sun), owned by **Nicole Brugman, Quintin Driskell or Michael Broadhurst** (`ACTIVITY_REPS` in `src/metrics.js`, matched by CRM user id).
+- A Task has a real owner, so unlike calls there is no Subject matching. Everything those reps close counts: follow-up calls and texts, cadence steps, inbox clean-ups and meetings marked done. Calls and meetings logged in their own CRM modules are not added in.
+- **Arrow:** compared with last week's count. A dash shows if the Tasks pull has failed and there is no earlier data.
+- Needs the `ZohoCRM.modules.tasks.READ` scope on the Zoho refresh token.
+- **Phone view:** tap the tile for the list, split by rep, by day and over the last 4 weeks.
+- The old "Calls logged" tile was replaced by this one. The "Calls per day" chart below is unchanged and still uses the call rules above.
 
 ### Meetings this week (tile)
 - **Big number:** CRM Events (Meetings) with `Start_DateTime` in this week (Mon–Sun). This counts **every** Event in CRM, whatever kind of meeting it is and whoever owns it, Quintin Driskell included.

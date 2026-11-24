@@ -93,6 +93,17 @@ function sales(id, src, win) {
       { label: 'Last 4 weeks', rows: byWeek(src.leads.data, win, d) },
     ], { unit: 'leads', explain: 'A lead is a potential customer who has shown interest (through the website, a referral, an event or an ad) and has been entered into our CRM. This is how many new ones came in this week. More leads means more people the sales team can reach out to and turn into appointments.' });
   }
+  if (kind === 'acts') {
+    if (!src.activities || !src.activities.data) return pending('Activities closed');
+    const all = src.activities.data.filter(M.isRepActivity);
+    const rows = all.filter((r) => inRange(d(r), win.ws, wkEnd));
+    const rec = (r) => ({ name: dash(r.subject), sub: M.ACTIVITY_REPS[r.ownerId], t: r.t, href: crm('Tasks', r.id) });
+    return make('Activities closed · this week', `CRM Tasks with Status "Completed" and Closed Time this week (Mon–Sun), owned by ${Object.values(M.ACTIVITY_REPS).join(', ')}.`, rows, rec, [
+      { label: 'By rep', rows: countBy(rows, (r) => M.ACTIVITY_REPS[r.ownerId]) },
+      { label: 'By day', rows: byDays(rows, win.ws, 7, d) },
+      { label: 'Last 4 weeks', rows: byWeek(all, win, d) },
+    ], { unit: 'activities', explain: 'Follow-up tasks (calls, texts, emails, check-ins) that our inside sales reps marked done this week. Each one is a to-do in the CRM that a rep actually finished, so it is a read on how much outreach and follow-through the team completed.' });
+  }
   if (kind === 'calls' || kind === 'callday') {
     if (!src.calls.data) return pending('Calls logged');
     const day = kind === 'callday' ? addDays(win.ws, Number(a)) : null;
