@@ -98,7 +98,7 @@ function sales(id, src, win) {
     const all = src.activities.data.filter(M.isRepActivity);
     const rows = all.filter((r) => inRange(d(r), win.ws, wkEnd));
     const rec = (r) => ({ name: dash(r.subject), sub: M.ACTIVITY_REPS[r.ownerId], t: r.t, href: crm('Tasks', r.id) });
-    return make('Activities closed · this week', `CRM Tasks with Status "Completed" and Closed Time this week (Mon–Sun), owned by ${Object.values(M.ACTIVITY_REPS).join(', ')}.`, rows, rec, [
+    return make('Activities closed · this week', `CRM Tasks with a Closed Time this week (Mon–Sun), owned by ${Object.values(M.ACTIVITY_REPS).join(', ')}.`, rows, rec, [
       { label: 'By rep', rows: countBy(rows, (r) => M.ACTIVITY_REPS[r.ownerId]) },
       { label: 'By day', rows: byDays(rows, win.ws, 7, d) },
       { label: 'Last 4 weeks', rows: byWeek(all, win, d) },

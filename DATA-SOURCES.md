@@ -27,7 +27,7 @@ This file traces every number and chart on the three office monitor boards back 
 | --- | --- | --- | --- |
 | `leads` | CRM · Leads | `Created_Time >=` 22 days before this Monday | `Created_Time`, `Lead_Source` (blank becomes "None") |
 | `calls` | CRM · Calls | `Call_Start_Time >=` 22 days before this Monday | `Call_Start_Time`, `Call_Type`, `Subject` (used to keep only the inside sales reps' calls) |
-| `activities` | CRM · Tasks | `Status = 'Completed'`, `Closed_Time >=` 22 days before this Monday, `Owner` is one of the three inside sales reps (by user id) | `Closed_Time`, `Owner` (id), `Subject` |
+| `activities` | CRM · Tasks | `Closed_Time >=` 22 days before this Monday (only closed tasks have one), `Owner` is one of the three inside sales reps (by user id) | `Closed_Time`, `Owner` (id), `Subject` |
 | `meetings` | CRM · Events (Meetings) | `Start_DateTime` between 22 days before this Monday and the Sunday after next | `Start_DateTime`, `Owner` (name and id) |
 | `apptSat` | CRM · Deals | `Appointment_Date` between the 1st and the last day of last month | `Appointment_Date`, `Lead_Source` (blank becomes "None"), `Scheduled_Appointment_Quality` |
 | `openDeals` | CRM · Deals | `Stage not in` Closed Won, Closed Lost, Closed Deferred, Closed Disqualified, Closed Hold, Appointment Cancelled. No date filter: every open deal. | `Stage`, `Amount` (blank = 0), `Layout` |
@@ -71,7 +71,7 @@ Sources: `leads`, `calls`, `activities`, `meetings`, `apptSat` (Zoho CRM).
 - As of Nov 13, 2026, no call in CRM has Quintin Driskell's name in the Subject, so his calls don't reach the board yet.
 
 ### Activities closed (tile)
-- **Big number:** CRM **Tasks** with `Status` = Completed and `Closed_Time` in this week (Mon–Sun), owned by **Nicole Brugman, Quintin Driskell or Michael Broadhurst** (`ACTIVITY_REPS` in `src/metrics.js`, matched by CRM user id).
+- **Big number:** CRM **Tasks** closed (`Closed_Time`) in this week (Mon–Sun), owned by **Nicole Brugman, Quintin Driskell or Michael Broadhurst** (`ACTIVITY_REPS` in `src/metrics.js`, matched by CRM user id).
 - A Task has a real owner, so unlike calls there is no Subject matching. Everything those reps close counts: follow-up calls and texts, cadence steps, inbox clean-ups and meetings marked done. Calls and meetings logged in their own CRM modules are not added in.
 - **Arrow:** compared with last week's count. A dash shows if the Tasks pull has failed and there is no earlier data.
 - Needs the `ZohoCRM.modules.tasks.READ` scope on the Zoho refresh token.

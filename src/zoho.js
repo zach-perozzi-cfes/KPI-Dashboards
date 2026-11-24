@@ -179,8 +179,9 @@ function sourceDefs(win) {
       .then((rows) => rows.map((r) => ({ id: r.id, t: r.Appointment_Date, src: r.Lead_Source || 'None', q: r.Scheduled_Appointment_Quality || '', name: r.Deal_Name || '', owner: ownerName(r.Owner) }))),
     calls: () => coqlAll(`select id, Call_Start_Time, Call_Type, Call_Duration, Subject from Calls where Call_Start_Time >= '${since}'`)
       .then((rows) => rows.map((r) => ({ id: r.id, t: r.Call_Start_Time, type: r.Call_Type || '', subject: r.Subject || '', dur: r.Call_Duration || '' }))),
-    // Closed activities: CRM Tasks marked Completed, owned by the inside sales reps (ids in metrics.js).
-    activities: () => coqlAll(`select id, Subject, Owner, Closed_Time from Tasks where Status = 'Completed' and Closed_Time >= '${since}' and Owner in (${Object.keys(ACTIVITY_REPS).map((id) => `'${id}'`).join(', ')})`)
+    // Closed activities: CRM Tasks closed since the window start, owned by the inside sales reps (ids in
+    // metrics.js). Closed_Time is only set on a closed task, and COQL rejects a Status filter on Tasks.
+    activities: () => coqlAll(`select id, Subject, Owner, Closed_Time from Tasks where Closed_Time >= '${since}' and Owner in (${Object.keys(ACTIVITY_REPS).map((id) => `'${id}'`).join(', ')})`)
       .then((rows) => rows.map((r) => ({ id: r.id, t: r.Closed_Time, subject: r.Subject || '', ownerId: (r.Owner && r.Owner.id) || null }))),
     meetings: () => coqlAll(`select id, Event_Title, Start_DateTime, Owner from Events where Start_DateTime between '${since}' and '${until}'`)
       .then((rows) => rows.map((r) => ({ id: r.id, t: r.Start_DateTime, title: r.Event_Title || '', owner: (r.Owner && r.Owner.name) || 'Unassigned', ownerId: (r.Owner && r.Owner.id) || null }))),
