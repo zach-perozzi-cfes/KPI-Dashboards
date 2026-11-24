@@ -64,6 +64,10 @@ h2.lbl{font-size:28px;letter-spacing:-.01em}
 .ph h2{flex-grow:1}
 .key{display:flex;align-items:center;gap:8px;font-size:15px;color:#eaeaea}
 .sw{width:14px;height:14px;border-radius:3px;display:inline-block}
+.ph.lgkey{gap:26px}
+.ph.lgkey h2,.ph.lgkey .key{white-space:nowrap}
+.ph.lgkey .key{font-size:20px;gap:9px}
+.ph.lgkey .sw{width:18px;height:18px;border-radius:4px}
 .mx{position:relative;z-index:0;display:grid;grid-template-columns:minmax(0,1fr) repeat(5,92px) 72px;gap:6px 8px;align-items:center}
 .mx .today{position:absolute;z-index:-1;grid-row:1 / -1;inset:-5px -5px;border:2px solid #ffdb05;border-radius:9px;background:rgba(255,219,5,0.07)}
 .mh{text-align:center;font-size:15px;color:#eaeaea;font-weight:700;white-space:nowrap;padding:3px 0}
@@ -292,7 +296,7 @@ ${newTile}
     // One segment per layout (department). The biggest layout sits at the bottom, so list top-down.
     const segs = p.wonLayouts.map((l) => ({ l, h: Math.round((((m.by[l.name] || {}).amt || 0) / scaleMax) * plotH) })).filter((s) => s.h > 0).reverse();
     const stack = segs.map((s, k) => `<div style="height:${s.h}px;background:${s.l.color === '#71a62b' ? 'linear-gradient(180deg,#71a62b,#5a881c)' : s.l.color}${k === 0 ? ';border-radius:4px 4px 0 0' : ''}"></div>`).join('');
-    return `<div class="col" style="padding:0 ${colPad}px"><p class="num" style="font-size:14px;position:relative;z-index:1;text-shadow:0 0 4px #1d1d1d,0 0 4px #1d1d1d${mtd ? ';color:#ffdb05' : ''}">${money(m.amt)}</p>${stack}</div>`;
+    return `<div class="col" style="padding:0 ${colPad}px"><p class="num" style="font-size:22px;white-space:nowrap;letter-spacing:-.02em;position:relative;z-index:1;text-shadow:0 0 5px #1d1d1d,0 0 5px #1d1d1d,0 0 5px #1d1d1d${mtd ? ';color:#ffdb05' : ''}">${money(m.amt)}</p>${stack}</div>`;
   }).join('');
 
   // Linear trend over completed months only (metrics.js monthTrend).
@@ -303,12 +307,12 @@ ${newTile}
     const y = (v) => Math.max(0, Math.min(plotH, plotH - (v / scaleMax) * plotH)).toFixed(1);
     const x = (i) => (((i + 0.5) / n) * 1000).toFixed(1);
     trendSvg = `<svg aria-hidden="true" viewBox="0 0 1000 ${plotH}" preserveAspectRatio="none" style="position:absolute;left:0;bottom:0;width:100%;height:${plotH}px;overflow:visible;pointer-events:none"><line x1="${x(0)}" y1="${y(at(0))}" x2="${x(k - 1)}" y2="${y(at(k - 1))}" stroke="#ffffff" stroke-width="3" stroke-dasharray="10 8" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>`;
-    trendKey = `<span class="key"><span style="width:24px;border-top:3px dashed #ffffff;display:inline-block"></span>Trend ${MONTHS[0]}–${MONTHS[k - 1]}: ${slope >= 0 ? '+' : '−'}${money(Math.abs(slope))}/mo</span>`;
+    trendKey = `<span class="key"><span style="width:30px;border-top:3px dashed #ffffff;display:inline-block"></span>Trend YTD: ${slope >= 0 ? '+' : '−'}${money(Math.abs(slope))}/mo</span>`;
   }
   const monthLbls = p.months.map((m, i) => `<p class="sub" style="text-align:center${i === n - 1 ? ';color:#ffdb05' : ''}">${MONTHS[m.m - 1]}</p>`).join('');
   const counts = p.months.map((m, i) => `<p style="margin:0;text-align:center;font-weight:700;font-size:16px${i === n - 1 ? ';color:#ffdb05' : ''}">${m.n}</p>`).join('');
   const layoutKeys = p.wonLayouts.map((l) => `<span class="key"><span class="sw" style="background:${l.color}"></span>${esc(l.short)}</span>`).join('');
-  const left = `<div class="card panel" style="flex-grow:1"><div class="ph"><h2 class="lbl">Closed-won revenue by month · by department</h2>${layoutKeys}${trendKey}</div>
+  const left = `<div class="card panel" style="flex-grow:1"><div class="ph lgkey"><h2 class="lbl">Closed-won revenue by month · by department</h2>${layoutKeys}${trendKey}</div>
 <div style="position:relative;height:${plotH + 30}px;display:flex;padding-left:72px">${grid}
 <div style="position:relative;flex-grow:1;display:grid;grid-template-columns:repeat(${n},minmax(0,1fr));gap:0;align-items:end;border-bottom:1px solid #333333">${cols}${trendSvg}</div></div>
 <div style="display:grid;grid-template-columns:72px repeat(${n},minmax(0,1fr));column-gap:0;row-gap:8px;align-items:center"><span></span>${monthLbls}<span style="font-size:13px;color:#a1a1a1">Deals won</span>${counts}</div></div>`;
